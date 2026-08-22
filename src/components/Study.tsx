@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { todayKey } from '../lib/date'
-import { GRADES, parseCards, type CardDeck, type Grade } from '../lib/school'
-import { deckStats, dueCards, newCard, schedule, subjectColor } from '../lib/schoolDerive'
+import { GRADES, parseCards, type CardDeck, type CardGrade } from '../lib/school'
+import { deckStats, dueCards, newCard, recordReview, schedule, subjectColor } from '../lib/schoolDerive'
 import { SERIES, STATUS } from '../lib/palette'
 import { Bar, Empty } from './Hud'
 
@@ -136,11 +136,12 @@ function Review({ deckId, onDone }: { deckId: string; onDone: () => void }) {
   const card = queue[0]
   const deck = db.decks.find((d) => d.id === deckId)
 
-  function answer(grade: Grade) {
+  function answer(grade: CardGrade) {
     if (!card) return
     update((db) => {
       const target = db.cards.find((c) => c.id === card.id)
       if (target) Object.assign(target, schedule(target, grade, today))
+      recordReview(db, deckId, grade, today)
     })
     setRevealed(false)
     setDone(done + 1)

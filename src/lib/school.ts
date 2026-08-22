@@ -63,9 +63,9 @@ export interface Card {
   lastReview: string | null
 }
 
-export type Grade = 'again' | 'hard' | 'good' | 'easy'
+export type CardGrade = 'again' | 'hard' | 'good' | 'easy'
 
-export const GRADES: { id: Grade; label: string; hint: string }[] = [
+export const GRADES: { id: CardGrade; label: string; hint: string }[] = [
   { id: 'again', label: 'Opnieuw', hint: 'wist ik niet' },
   { id: 'hard',  label: 'Moeilijk', hint: 'met moeite' },
   { id: 'good',  label: 'Goed',     hint: 'wist ik' },
@@ -192,4 +192,97 @@ export const LAYOUTS: { id: SlideLayout; label: string; hint: string }[] = [
 
 export function emptySlide(layout: SlideLayout = 'opsomming'): Slide {
   return { id: crypto.randomUUID(), layout, heading: '', subheading: '', bullets: [''], notes: '' }
+}
+
+/* ── Punten ─────────────────────────────────────────────────────────────── */
+
+export type GradeKind = 'toets' | 'taak' | 'examen' | 'mondeling'
+
+export const GRADE_KINDS: { id: GradeKind; label: string; weight: number }[] = [
+  { id: 'toets',     label: 'Toets',     weight: 1 },
+  { id: 'taak',      label: 'Taak',      weight: 0.5 },
+  { id: 'examen',    label: 'Examen',    weight: 3 },
+  { id: 'mondeling', label: 'Mondeling', weight: 1 },
+]
+
+export interface Grade {
+  id: string
+  subjectId: string | null
+  title: string
+  date: string
+  score: number
+  max: number
+  /** Hoe zwaar dit meetelt in je gemiddelde */
+  weight: number
+  kind: GradeKind
+  note: string
+}
+
+export function gradePercent(g: Grade): number {
+  return g.max > 0 ? (g.score / g.max) * 100 : 0
+}
+
+/* ── Toetsen die eraan komen ────────────────────────────────────────────── */
+
+export interface Exam {
+  id: string
+  subjectId: string | null
+  title: string
+  date: string
+  kind: GradeKind
+  /** Hoofdstukken of onderwerpen die je moet kennen */
+  topics: string[]
+  /** Hoe goed je je nu voelt: 0 = nog niks, 5 = klaar */
+  confidence: number
+  note: string
+}
+
+/**
+ * Verdeelt de leerstof over de dagen tot de toets, met herhaling ingebouwd:
+ * nieuwe stof eerst, daarna alles nog eens, en de dag ervoor alleen herhalen.
+ */
+export function studyPlan(topics: string[], daysLeft: number): { day: number; what: string }[] {
+  if (topics.length === 0 || daysLeft <= 0) return []
+  const plan: { day: number; what: string }[] = []
+  const learnDays = Math.max(1, Math.ceil(daysLeft * 0.6))
+  const perDay = Math.ceil(topics.length / learnDays)
+
+  for (let d = 0; d < learnDays; d++) {
+    const slice = topics.slice(d * perDay, (d + 1) * perDay)
+    if (slice.length > 0) plan.push({ day: daysLeft - d, what: `Leren: ${slice.join(', ')}` })
+  }
+  for (let d = learnDays; d < daysLeft - 1; d++) {
+    plan.push({ day: daysLeft - d, what: 'Herhalen: alles wat je al zag, met de kaarten' })
+  }
+  if (daysLeft >= 2) plan.push({ day: 1, what: 'Alleen herhalen — geen nieuwe stof meer' })
+  return plan.sort((a, b) => b.day - a.day)
+}
+
+/* ── Studietijd ─────────────────────────────────────────────────────────── */
+
+export type StudyKind = 'leren' | 'huiswerk' | 'herhalen'
+
+export const STUDY_KINDS: { id: StudyKind; label: string }[] = [
+  { id: 'leren',    label: 'Leren' },
+  { id: 'huiswerk', label: 'Huiswerk' },
+  { id: 'herhalen', label: 'Herhalen' },
+]
+
+export interface StudySession {
+  id: string
+  subjectId: string | null
+  date: string
+  minutes: number
+  kind: StudyKind
+  what: string
+}
+
+/** Samengevatte overhoorresultaten per dag en stapel. */
+export interface ReviewLog {
+  date: string
+  deckId: string
+  again: number
+  hard: number
+  good: number
+  easy: number
 }
