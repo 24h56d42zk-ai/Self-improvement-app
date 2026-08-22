@@ -49,6 +49,8 @@ export interface Trade {
   fairId: string | null
   itemId: string | null
   note: string
+  /** Exact tijdstip van boeken; gebruikt om samen met metingen op dezelfde dag te rekenen */
+  at?: string
 }
 
 export interface Fair {

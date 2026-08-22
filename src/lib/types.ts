@@ -54,6 +54,8 @@ export interface NetWorthSnapshot {
   cash: number
   inventory: number
   note: string
+  /** Exact tijdstip; laat toe om transacties van dezelfde dag juist te tellen */
+  at?: string
 }
 
 export interface Settings {

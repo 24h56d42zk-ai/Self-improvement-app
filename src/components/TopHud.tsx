@@ -1,8 +1,9 @@
 import { useStore } from '../lib/store'
 import { EVENTS } from '../lib/events'
 import { daysBetween, todayKey } from '../lib/date'
-import { hard75State, latestNetWorth, sessionsThisWeek, tasksOnDay, WEEK_TARGET } from '../lib/derive'
-import { cashNow, inventoryCoverage } from '../lib/businessDerive'
+import { hard75State, sessionsThisWeek, tasksOnDay, WEEK_TARGET } from '../lib/derive'
+import { inventoryFromList, setCash, setInventory, wealth } from '../lib/wealth'
+import EditableMoney from './EditableMoney'
 import { HARD75_LENGTH } from '../lib/types'
 import { Bar, Stat } from './Hud'
 import { SERIES } from '../lib/palette'
@@ -11,17 +12,13 @@ const euro = (n: number) => `€${Math.round(n).toLocaleString('nl-BE')}`
 
 /** De vaste bovenbalk: de cijfers die Noa altijd wil zien. */
 export default function TopHud() {
-  const { db } = useStore()
+  const { db, update } = useStore()
   const today = todayKey()
   const hard = hard75State(db, today)
   const week = sessionsThisWeek(db, today)
   const tasks = tasksOnDay(db, today)
-  // Live rekenen zodra er transacties zijn; de voorraad alleen als de lijst je meting dekt.
-  const snapshot = latestNetWorth(db)
-  const coverage = inventoryCoverage(db)
-  const cash = db.trades.length > 0 ? cashNow(db, today).amount : snapshot.cash
-  const inventory = coverage.complete ? coverage.live : Math.max(coverage.live, snapshot.inventory)
-  const nw = { cash, inventory, total: cash + inventory }
+  const nw = wealth(db, today)
+  const fromList = inventoryFromList(db)
   const races = EVENTS.filter((e) => e.id.startsWith('hyrox'))
 
   return (
@@ -65,11 +62,20 @@ export default function TopHud() {
       </div>
 
       <div className="bg-panel p-4">
-        <div className="label mb-2">Vermogen</div>
+        <div className="label mb-1">Vermogen</div>
         <div className="num text-2xl font-bold leading-none text-ink">{euro(nw.total)}</div>
-        <div className="mt-2 flex gap-3 text-[11px] text-muted">
-          <span><span style={{ color: SERIES.blue }} aria-hidden>■</span> cash {euro(nw.cash)}</span>
-          <span><span style={{ color: SERIES.aqua }} aria-hidden>■</span> voorraad {euro(nw.inventory)}</span>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <div>
+            <div className="label text-[9px]">cash</div>
+            <EditableMoney size="sm" value={nw.cash} color={SERIES.blue} label="Cash"
+              onSave={(n) => update((db) => setCash(db, n))} />
+          </div>
+          <div>
+            <div className="label text-[9px]">voorraad</div>
+            <EditableMoney size="sm" value={nw.inventory} color={SERIES.aqua} label="Voorraad"
+              disabled={fromList} hint="Komt uit je inventarislijst — pas die aan bij Business"
+              onSave={(n) => update((db) => setInventory(db, n))} />
+          </div>
         </div>
       </div>
 

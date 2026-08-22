@@ -1,6 +1,6 @@
 import type { Database } from './types'
-import type { Fair, InventoryItem, ItemCategory, Trade } from './business'
-import { CATEGORIES, fairCosts } from './business'
+import type { Channel, Fair, InventoryItem, ItemCategory, Trade } from './business'
+import { CATEGORIES, CHANNELS, fairCosts } from './business'
 import { daysBetween, todayKey } from './date'
 
 /* ── Inventaris ─────────────────────────────────────────────────────────── */
@@ -245,4 +245,155 @@ export function salesSummary(db: Database, since?: string): SalesSummary {
 
 function sum(list: number[]): number {
   return list.reduce((a, b) => a + b, 0)
+}
+
+/* ── Maandcijfers ───────────────────────────────────────────────────────── */
+
+export interface MonthStats {
+  month: string
+  label: string
+  revenue: number
+  profit: number
+  spend: number
+  units: number
+  transactions: number
+}
+
+const MONTH_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
+
+export function monthlyStats(db: Database, months = 12, today = todayKey()): MonthStats[] {
+  const [y, m] = today.split('-').map(Number)
+  return Array.from({ length: months }, (_, i) => {
+    const d = new Date(y, m - 1 - (months - 1 - i), 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const inMonth = db.trades.filter((t) => t.date.startsWith(key))
+    const sales = inMonth.filter((t) => t.kind === 'verkoop')
+    const buys = inMonth.filter((t) => t.kind === 'aankoop')
+    const fairSpend = db.fairs.filter((f) => f.date.startsWith(key)).reduce((n, f) => n + fairCosts(f), 0)
+    return {
+      month: key,
+      label: `${MONTH_SHORT[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`,
+      revenue: Math.round(sum(sales.map(tradeTotal))),
+      profit: Math.round(sum(sales.map((t) => tradeProfit(t) ?? 0)) - fairSpend),
+      spend: Math.round(sum(buys.map(tradeTotal)) + fairSpend),
+      units: sum(sales.map((t) => t.quantity)),
+      transactions: sales.length,
+    }
+  })
+}
+
+/* ── Kanalen ────────────────────────────────────────────────────────────── */
+
+export interface ChannelStats {
+  channel: Channel
+  label: string
+  revenue: number
+  profit: number
+  units: number
+  margin: number | null
+}
+
+export function byChannel(db: Database): ChannelStats[] {
+  return CHANNELS.map((c) => {
+    const sales = db.trades.filter((t) => t.kind === 'verkoop' && t.channel === c.id)
+    const revenue = sum(sales.map(tradeTotal))
+    const profit = sum(sales.map((t) => tradeProfit(t) ?? 0))
+    return {
+      channel: c.id,
+      label: c.label,
+      revenue: Math.round(revenue),
+      profit: Math.round(profit),
+      units: sum(sales.map((t) => t.quantity)),
+      margin: revenue === 0 ? null : (profit / revenue) * 100,
+    }
+  }).filter((c) => c.revenue > 0 || c.units > 0)
+}
+
+/* ── Categorie: marge en rendement ──────────────────────────────────────── */
+
+export interface CategoryPerformance {
+  id: ItemCategory
+  label: string
+  revenue: number
+  profit: number
+  margin: number | null
+  /** Rendement op wat je erin stak */
+  roi: number | null
+  stockValue: number
+  units: number
+}
+
+export function categoryPerformance(db: Database): CategoryPerformance[] {
+  return CATEGORIES.map((c) => {
+    const sales = db.trades.filter((t) => t.kind === 'verkoop' && t.category === c.id)
+    const revenue = sum(sales.map(tradeTotal))
+    const profit = sum(sales.map((t) => tradeProfit(t) ?? 0))
+    const cost = sum(sales.map((t) => t.quantity * (t.unitCost ?? 0)))
+    const stock = db.inventory.filter((i) => i.category === c.id)
+    return {
+      id: c.id,
+      label: c.short,
+      revenue: Math.round(revenue),
+      profit: Math.round(profit),
+      margin: revenue === 0 ? null : (profit / revenue) * 100,
+      roi: cost === 0 ? null : (profit / cost) * 100,
+      stockValue: Math.round(sum(stock.map(itemValue))),
+      units: sum(sales.map((t) => t.quantity)),
+    }
+  })
+}
+
+/* ── Verkoopsnelheid ────────────────────────────────────────────────────── */
+
+export interface AgeBucket { label: string; value: number; count: number }
+
+/** Voorraadwaarde verdeeld over hoe lang het al ligt. */
+export function stockAgeBuckets(db: Database, today = todayKey()): AgeBucket[] {
+  const buckets: { label: string; max: number }[] = [
+    { label: '0–30 d', max: 30 },
+    { label: '31–60 d', max: 60 },
+    { label: '61–90 d', max: 90 },
+    { label: '91–180 d', max: 180 },
+    { label: '180+ d', max: Infinity },
+  ]
+  return buckets.map((b, i) => {
+    const min = i === 0 ? 0 : buckets[i - 1].max
+    const items = db.inventory.filter((item) => {
+      const d = daysInStock(item, today)
+      return d > min - (i === 0 ? 1 : 0) && d <= b.max
+    })
+    return { label: b.label, value: Math.round(sum(items.map(itemValue))), count: items.length }
+  })
+}
+
+/** Gemiddeld aantal dagen tussen aankoop en verkoop, per categorie. */
+export function daysToSell(db: Database): { label: string; value: number }[] {
+  return CATEGORIES.map((c) => {
+    const spans: number[] = []
+    for (const sale of db.trades.filter((t) => t.kind === 'verkoop' && t.category === c.id && t.itemId)) {
+      const buy = db.trades.find((t) => t.kind === 'aankoop' && t.itemId === sale.itemId)
+      if (buy) spans.push(Math.max(0, daysBetween(buy.date, sale.date)))
+    }
+    return { label: c.short, value: spans.length === 0 ? 0 : Math.round(sum(spans) / spans.length) }
+  }).filter((c) => c.value > 0)
+}
+
+/* ── Bestsellers ────────────────────────────────────────────────────────── */
+
+export interface Bestseller { name: string; revenue: number; profit: number; units: number }
+
+export function bestsellers(db: Database, limit = 8): Bestseller[] {
+  const map = new Map<string, Bestseller>()
+  for (const t of db.trades.filter((x) => x.kind === 'verkoop')) {
+    const key = t.name.trim().toLowerCase() || '(zonder naam)'
+    const cur = map.get(key) ?? { name: t.name || '(zonder naam)', revenue: 0, profit: 0, units: 0 }
+    cur.revenue += tradeTotal(t)
+    cur.profit += tradeProfit(t) ?? 0
+    cur.units += t.quantity
+    map.set(key, cur)
+  }
+  return [...map.values()]
+    .map((b) => ({ ...b, revenue: Math.round(b.revenue), profit: Math.round(b.profit) }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, limit)
 }

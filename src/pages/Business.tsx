@@ -3,27 +3,34 @@ import { useStore } from '../lib/store'
 import { addDays, formatShort, todayKey } from '../lib/date'
 import { euro } from '../lib/business'
 import {
-  byCategory, cashNow, daysInStock, fairReports, inventoryCoverage, inventoryTotals, itemValue,
+  byCategory, daysInStock, fairReports, inventoryCoverage, inventoryTotals, itemValue,
   salesSummary, slowMovers, staleValues, wealthSeries,
 } from '../lib/businessDerive'
+import { inventoryFromList, setCash, setInventory, setTotal, wealth } from '../lib/wealth'
+import EditableMoney from '../components/EditableMoney'
 import { SERIES, STATUS } from '../lib/palette'
 import { Bar, Empty, Legend, Panel, ToneLine } from '../components/Hud'
 import { NetWorthArea, ProfitPerFair } from '../components/charts'
+import { ChartLegend, Donut, RankBars, SERIES_ORDER, TimeSeries } from '../components/charts2'
+import {
+  bestsellers, byChannel, categoryPerformance, daysToSell, monthlyStats, stockAgeBuckets,
+} from '../lib/businessDerive'
 import Inventory from '../components/Inventory'
 import Trades from '../components/Trades'
 import Fairs from '../components/Fairs'
 
-const TABS = ['Overzicht', 'Inventaris', 'Transacties', 'Beurzen'] as const
+const TABS = ['Overzicht', 'Analyse', 'Inventaris', 'Transacties', 'Beurzen'] as const
 type Tab = (typeof TABS)[number]
 
 export default function Business() {
-  const { db } = useStore()
+  const { db, update } = useStore()
   const today = todayKey()
   const [tab, setTab] = useState<Tab>('Overzicht')
 
   const totals = useMemo(() => inventoryTotals(db.inventory), [db.inventory])
-  const cash = useMemo(() => cashNow(db, today), [db, today])
-  const wealth = useMemo(() => wealthSeries(db, today), [db, today])
+  const money = useMemo(() => wealth(db, today), [db, today])
+  const fromList = useMemo(() => inventoryFromList(db), [db])
+  const wealthPoints = useMemo(() => wealthSeries(db, today), [db, today])
   const cats = useMemo(() => byCategory(db.inventory), [db.inventory])
   const reports = useMemo(() => fairReports(db), [db])
   const stale = useMemo(() => staleValues(db.inventory, 60, today), [db.inventory, today])
@@ -31,8 +38,8 @@ export default function Business() {
   const sales30 = useMemo(() => salesSummary(db, addDays(today, -30)), [db, today])
   const coverage = useMemo(() => inventoryCoverage(db), [db])
 
-  const inventoryShown = coverage.complete ? totals.value : Math.max(totals.value, coverage.measured)
-  const total = cash.amount + inventoryShown
+  const inventoryShown = money.inventory
+  const total = money.total
   const fairBars = reports.map((r) => ({
     name: r.fair.name,
     label: formatShort(r.fair.date),
@@ -40,7 +47,7 @@ export default function Business() {
     omzet: Math.round(r.revenue),
     kosten: Math.round(r.costs),
   }))
-  const chartWealth = wealth.map((p) => ({ ...p, date: formatShort(p.date) }))
+  const chartWealth = wealthPoints.map((p) => ({ ...p, date: formatShort(p.date) }))
 
   return (
     <div className="mx-auto max-w-[1500px] space-y-4">
@@ -71,27 +78,29 @@ export default function Business() {
             </span>
             <div className="bg-panel p-4">
               <div className="label">Cash nu</div>
-              <div className="num mt-1 text-2xl font-bold" style={{ color: SERIES.blue }}>{euro(cash.amount)}</div>
+              <EditableMoney value={money.cash} color={SERIES.blue} label="Cash"
+                onSave={(n) => update((db) => setCash(db, n))} />
               <div className="mt-1 text-[11px] text-muted">
-                {cash.since
-                  ? <>meting {formatShort(cash.since)} {cash.movements >= 0 ? '+' : '−'}{euro(Math.abs(cash.movements))} sindsdien</>
-                  : 'nog geen meting ingevoerd'}
+                {money.since
+                  ? <>meting {formatShort(money.since)} {money.movements >= 0 ? '+' : '−'}{euro(Math.abs(money.movements))} sindsdien</>
+                  : 'klik om je cash te zetten'}
               </div>
             </div>
             <div className="bg-panel p-4">
               <div className="label">Voorraad</div>
-              <div className="num mt-1 text-2xl font-bold" style={{ color: SERIES.aqua }}>
-                {euro(coverage.complete ? totals.value : Math.max(totals.value, coverage.measured))}
-              </div>
+              <EditableMoney value={inventoryShown} color={SERIES.aqua} label="Voorraad"
+                disabled={fromList} hint="Komt uit je inventarislijst — pas die daar aan"
+                onSave={(n) => update((db) => setInventory(db, n))} />
               <div className="mt-1 text-[11px] text-muted">
-                {coverage.complete
-                  ? <>ingekocht voor {euro(totals.cost)}</>
+                {fromList
+                  ? <>uit je lijst · ingekocht voor {euro(totals.cost)}</>
                   : <>uit je meting · lijst dekt {euro(totals.value)}</>}
               </div>
             </div>
             <div className="bg-panel p-4">
               <div className="label">Totaal vermogen</div>
-              <div className="num mt-1 text-2xl font-bold text-ink">{euro(total)}</div>
+              <EditableMoney value={total} label="Totaal vermogen"
+                onSave={(n) => update((db) => setTotal(db, n))} />
               <div className="mt-1 text-[11px] text-muted">
                 {total > 0 ? `${Math.round((inventoryShown / total) * 100)}% zit vast in voorraad` : '—'}
               </div>
@@ -117,9 +126,10 @@ export default function Business() {
                   of werk je meting bij.
                 </ToneLine>
               )}
-              {!cash.since && (
+              {!money.since && (
                 <ToneLine tone="warn">
-                  Nog geen cashmeting. Zet er één bij Instellingen → Vermogen, dan rekent alles daarna vanzelf verder.
+                  Nog geen cashmeting. Klik hierboven op het bedrag bij Cash en zet je startbedrag —
+                  daarna rekent alles vanzelf verder.
                 </ToneLine>
               )}
               {stale.length > 0 && (
@@ -235,9 +245,183 @@ export default function Business() {
         </>
       )}
 
+      {tab === 'Analyse' && <Analyse />}
+
       {tab === 'Inventaris' && <Panel hud title="Inventaris"><Inventory /></Panel>}
       {tab === 'Transacties' && <Panel hud title="Aan- en verkopen"><Trades /></Panel>}
       {tab === 'Beurzen' && <Fairs />}
+    </div>
+  )
+}
+
+/* ── Analyse ────────────────────────────────────────────────────────────── */
+
+function Analyse() {
+  const { db } = useStore()
+  const today = todayKey()
+
+  const months = useMemo(() => monthlyStats(db, 12, today), [db, today])
+  const channels = useMemo(() => byChannel(db), [db])
+  const cats = useMemo(() => categoryPerformance(db), [db])
+  const ages = useMemo(() => stockAgeBuckets(db, today), [db, today])
+  const speed = useMemo(() => daysToSell(db), [db])
+  const top = useMemo(() => bestsellers(db, 8), [db])
+
+  const totalRevenue = months.reduce((n, m) => n + m.revenue, 0)
+  const totalProfit = months.reduce((n, m) => n + m.profit, 0)
+  const bestMonth = [...months].sort((a, b) => b.profit - a.profit)[0]
+  const hasSales = totalRevenue > 0
+
+  if (!hasSales) {
+    return (
+      <Panel hud title="Analyse">
+        <Empty>
+          Nog geen verkopen geboekt. Zodra je een paar verkopen invoert vullen deze grafieken zich vanzelf:
+          omzet en winst per maand, marge per categorie en per kanaal, hoe snel dingen weggaan,
+          en welke voorraad blijft liggen.
+        </Empty>
+      </Panel>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="panel-hud grid grid-cols-2 gap-px overflow-hidden bg-line/40 lg:grid-cols-4">
+        {[
+          { label: 'Omzet, 12 maanden', value: euro(totalRevenue), color: SERIES.aqua },
+          { label: 'Winst, 12 maanden', value: `${totalProfit >= 0 ? '+' : ''}${euro(totalProfit)}`,
+            color: totalProfit >= 0 ? STATUS.good : STATUS.critical },
+          { label: 'Gemiddelde marge',
+            value: totalRevenue === 0 ? '—' : `${Math.round((totalProfit / totalRevenue) * 100)}%`, color: undefined },
+          { label: 'Beste maand', value: bestMonth ? `${bestMonth.label} · ${euro(bestMonth.profit)}` : '—', color: undefined },
+        ].map((s) => (
+          <div key={s.label} className="bg-panel p-4">
+            <div className="label truncate">{s.label}</div>
+            <div className="num mt-1 text-xl font-bold" style={s.color ? { color: s.color } : undefined}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <Panel title="Omzet en winst per maand"
+        right={<ChartLegend items={[
+          { label: 'omzet', color: SERIES.aqua },
+          { label: 'winst', color: SERIES.blue },
+        ]} />}>
+        <TimeSeries
+          data={months.map((m) => ({ label: m.label, omzet: m.revenue, winst: m.profit }))}
+          series={[
+            { key: 'omzet', label: 'omzet', color: SERIES.aqua },
+            { key: 'winst', label: 'winst', color: SERIES.blue },
+          ]}
+          format={(n) => (Math.abs(n) >= 1000 ? `€${Math.round(n / 1000)}k` : `€${n}`)}
+        />
+        <p className="mt-1 text-[11px] text-muted">
+          Winst is na aftrek van je beurskosten in die maand. Wat je inkoopt telt niet mee — dat wordt voorraad.
+        </p>
+      </Panel>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Panel title="Omzet per kanaal">
+          {channels.length > 0 ? (
+            <>
+              <Donut
+                data={channels.map((c, i) => ({ label: c.label, value: c.revenue, color: SERIES_ORDER[i % SERIES_ORDER.length] }))}
+                format={euro}
+                centerValue={euro(channels.reduce((n, c) => n + c.revenue, 0))}
+                centerLabel="totaal"
+              />
+              <ul className="mt-2 space-y-1">
+                {channels.map((c, i) => (
+                  <li key={c.channel} className="flex items-center gap-2 text-sm">
+                    <span className="h-2 w-2 shrink-0 rounded-[2px]"
+                      style={{ background: SERIES_ORDER[i % SERIES_ORDER.length] }} aria-hidden />
+                    <span className="min-w-0 flex-1 truncate text-ink">{c.label}</span>
+                    <span className="num text-muted">{c.units} st</span>
+                    <span className="num w-20 text-right" style={{ color: SERIES.aqua }}>{euro(c.revenue)}</span>
+                    <span className="num w-12 text-right text-[11px]"
+                      style={{ color: (c.margin ?? 0) >= 20 ? STATUS.good : STATUS.serious }}>
+                      {c.margin === null ? '—' : `${Math.round(c.margin)}%`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : <Empty>Nog geen verkopen per kanaal.</Empty>}
+        </Panel>
+
+        <Panel title="Marge per categorie">
+          <RankBars
+            data={cats.filter((c) => c.revenue > 0).map((c, i) => ({
+              label: c.label,
+              value: Math.round(c.margin ?? 0),
+              color: SERIES_ORDER[i % SERIES_ORDER.length],
+            }))}
+            format={(n) => `${n}%`}
+          />
+          <ul className="mt-2 space-y-1 border-t border-line/60 pt-2">
+            {cats.filter((c) => c.revenue > 0).map((c) => (
+              <li key={c.id} className="flex items-center gap-2 text-[11px] text-muted">
+                <span className="min-w-0 flex-1 truncate text-ink">{c.label}</span>
+                <span className="num">omzet {euro(c.revenue)}</span>
+                <span className="num">winst {euro(c.profit)}</span>
+                <span className="num w-16 text-right">
+                  {c.roi === null ? '' : `ROI ${Math.round(c.roi)}%`}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] text-muted">
+            ROI is je winst gedeeld door wat je voor die spullen betaalde — hoe hard je geld werkt.
+          </p>
+        </Panel>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Panel title="Hoe lang je voorraad al ligt">
+          <TimeSeries
+            data={ages.map((a) => ({ label: a.label, waarde: a.value }))}
+            series={[{ key: 'waarde', label: 'voorraadwaarde', color: SERIES.aqua }]}
+            format={(n) => (n >= 1000 ? `€${Math.round(n / 1000)}k` : `€${n}`)}
+            height={170}
+          />
+          <p className="mt-1 text-[11px] text-muted">
+            Alles rechts van 90 dagen is geld dat stilstaat. {euro(ages.slice(3).reduce((n, a) => n + a.value, 0))} zit
+            daar nu in.
+          </p>
+        </Panel>
+
+        <Panel title="Gemiddelde tijd tot verkoop">
+          {speed.length > 0 ? (
+            <>
+              <RankBars data={speed.map((s, i) => ({ ...s, color: SERIES_ORDER[i % SERIES_ORDER.length] }))}
+                format={(n) => `${n} d`} />
+              <p className="mt-1 text-[11px] text-muted">
+                Gerekend van aankoop tot verkoop, alleen voor items die via je inventaris liepen.
+              </p>
+            </>
+          ) : (
+            <Empty>Nog te weinig gekoppelde aan- en verkopen om dit te berekenen.</Empty>
+          )}
+        </Panel>
+      </div>
+
+      <Panel title="Bestsellers" right={<span className="num text-[11px] text-muted">op omzet</span>}>
+        <RankBars data={top.map((t) => ({ label: t.name.length > 22 ? `${t.name.slice(0, 21)}…` : t.name, value: t.revenue }))}
+          format={euro} />
+        <ul className="mt-2 space-y-1 border-t border-line/60 pt-2">
+          {top.map((t) => (
+            <li key={t.name} className="flex items-center gap-2 text-sm">
+              <span className="num w-8 shrink-0 text-[11px] text-muted">{t.units}×</span>
+              <span className="min-w-0 flex-1 truncate text-ink">{t.name}</span>
+              <span className="num w-20 text-right" style={{ color: SERIES.aqua }}>{euro(t.revenue)}</span>
+              <span className="num w-20 text-right text-[11px]"
+                style={{ color: t.profit >= 0 ? STATUS.good : STATUS.critical }}>
+                {t.profit >= 0 ? '+' : ''}{euro(t.profit)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Panel>
     </div>
   )
 }
