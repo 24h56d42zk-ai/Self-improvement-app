@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0e2a33"/>
+      <stop offset="100%" stop-color="#04070d"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+  <rect x="8" y="8" width="496" height="496" rx="106" fill="none" stroke="#22d3ee" stroke-opacity=".35" stroke-width="4"/>
+  <g stroke="#22d3ee" stroke-width="10" stroke-linecap="square" fill="none">
+    <path d="M96 148V96h52"/><path d="M416 148V96h-52"/>
+    <path d="M96 364v52h52"/><path d="M416 364v52h-52"/>
+  </g>
+  <text x="256" y="316" text-anchor="middle" fill="#22d3ee"
+        font-family="'JetBrains Mono', ui-monospace, monospace" font-size="200" font-weight="700">N</text>
+</svg>

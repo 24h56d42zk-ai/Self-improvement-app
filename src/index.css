@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+
+html, body, #root { height: 100%; }
+
+body {
+  background-color: #04070d;
+  color: #dbeafe;
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Grid-vloer + vignet: geeft het HUD-gevoel zonder iets leesbaars te storen. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgba(34,211,238,.10), transparent 60%),
+    linear-gradient(rgba(34,211,238,.045) 1px, transparent 1px) 0 0 / 100% 44px,
+    linear-gradient(90deg, rgba(34,211,238,.045) 1px, transparent 1px) 0 0 / 44px 100%;
+  mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 78%);
+}
+
+body[data-calm='true']::before { opacity: .35; }
+body[data-calm='true'] * { animation: none !important; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #04070d; }
+::-webkit-scrollbar-thumb { background: #16283a; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #22d3ee55; }
+
+@layer components {
+  .num { @apply font-mono tabular-nums tracking-tight; }
+  .label { @apply text-[10px] uppercase tracking-[0.18em] text-muted; }
+  .panel {
+    @apply relative rounded-lg border border-line/80 bg-panel/80 backdrop-blur-sm;
+  }
+  .panel-hud { @apply panel shadow-hud; }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-line px-3 py-2
+           text-sm font-medium text-ink/90 transition
+           hover:border-accent/60 hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60;
+  }
+  .btn-primary {
+    @apply btn border-accent/50 bg-accent/10 text-accent hover:bg-accent/20;
+  }
+  .input {
+    @apply w-full rounded-md border border-line bg-panel2 px-3 py-2 text-sm text-ink
+           placeholder:text-muted/70 focus:border-accent/60 focus:outline-none focus:ring-1 focus:ring-accent/40;
+  }
+}
