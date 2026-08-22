@@ -14,20 +14,40 @@ import { DOMAIN_STYLE } from '../components/Tasks'
 import Goals from '../components/Goals'
 import YearGrid from '../components/YearGrid'
 import Lessons from '../components/Lessons'
+import DayPlan from '../components/DayPlan'
+import MonthView from '../components/MonthView'
+import { carryOver, overdueTasks } from '../lib/autoplan'
+import { TimeSeries } from '../components/charts2'
 
-const TABS = ['Week', 'Doelen', 'Jaar', 'Lesrooster'] as const
+const TABS = ['Vandaag', 'Week', 'Maand', 'Doelen', 'Jaar', 'Lesrooster'] as const
 type Tab = (typeof TABS)[number]
 
 export default function Planning() {
-  const { db } = useStore()
+  const { db, update } = useStore()
   const today = todayKey()
-  const [tab, setTab] = useState<Tab>('Week')
+  const [tab, setTab] = useState<Tab>('Vandaag')
   const [anchor, setAnchor] = useState(today)
   const [selectedDay, setSelectedDay] = useState(today)
 
   const days = useMemo(() => weekKeys(anchor), [anchor])
   const review = useMemo(() => weekReview(db, today), [db, today])
   const weekGoals = db.goals.filter((g) => g.horizon === 'week' && g.period === periodFor('week', anchor))
+  const overdue = useMemo(() => overdueTasks(db, today), [db, today])
+  const completion = useMemo(() => {
+    return Array.from({ length: 8 }, (_, i) => {
+      const keys = weekKeys(addDays(today, (i - 7) * 7))
+      const tasks = db.tasks.filter((t) => t.date && keys.includes(t.date))
+      const sessions = keys.reduce((acc, k) => {
+        const s = sessionsOnDay(db, k)
+        return { done: acc.done + s.done, planned: acc.planned + s.planned }
+      }, { done: 0, planned: 0 })
+      return {
+        label: formatShort(keys[0]),
+        taken: tasks.length === 0 ? 0 : Math.round((tasks.filter((t) => t.done).length / tasks.length) * 100),
+        sessies: sessions.planned === 0 ? 0 : Math.round((sessions.done / sessions.planned) * 100),
+      }
+    })
+  }, [db, today])
 
   return (
     <div className="mx-auto max-w-[1500px] space-y-4">
@@ -47,6 +67,62 @@ export default function Planning() {
           ))}
         </nav>
       </header>
+
+      {tab === 'Vandaag' && (
+        <>
+          {overdue.length > 0 && (
+            <Panel className="border-warn/50 bg-warn/5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-warn">
+                  ! {overdue.length} {overdue.length === 1 ? 'taak staat' : 'taken staan'} nog open van eerdere dagen.
+                </p>
+                <button className="btn border-warn/60 text-warn hover:border-warn"
+                  onClick={() => update((db) => { carryOver(db, today) })}>
+                  Naar vandaag halen
+                </button>
+              </div>
+            </Panel>
+          )}
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
+            <Panel hud title="Je dag" right={<span className="num text-[11px] text-muted">{formatLong(today)}</span>}>
+              <DayPlan dateKey={today} />
+              <p className="mt-3 border-t border-line/60 pt-2 text-[11px] text-muted">
+                Automatisch gebouwd uit je lesrooster en je trainingsschema; je taken worden in de gaten
+                gelegd, de belangrijkste eerst.
+              </p>
+            </Panel>
+
+            <div className="space-y-4">
+              <Panel title="Taken vandaag">
+                <Tasks dateKey={today} full />
+              </Panel>
+              <Panel title="Hoeveel je afwerkt, per week"
+                right={<span className="num text-[11px] text-muted">8 weken</span>}>
+                <TimeSeries
+                  data={completion}
+                  series={[
+                    { key: 'taken', label: 'taken af', color: '#22d3ee' },
+                    { key: 'sessies', label: 'sessies gedaan', color: SERIES.orange },
+                  ]}
+                  type="line"
+                  format={(n) => `${n}%`}
+                  height={180}
+                />
+                <p className="mt-1 text-[11px] text-muted">
+                  Twee lijnen die je week samenvatten. Zakken ze samen, dan is het niet je planning maar je energie.
+                </p>
+              </Panel>
+            </div>
+          </div>
+        </>
+      )}
+
+      {tab === 'Maand' && (
+        <Panel hud title="Maandoverzicht">
+          <MonthView onPickDay={(key) => { setAnchor(key); setSelectedDay(key); setTab('Week') }} />
+        </Panel>
+      )}
 
       {tab === 'Week' && (
         <>

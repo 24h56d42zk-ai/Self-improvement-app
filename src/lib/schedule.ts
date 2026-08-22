@@ -34,6 +34,12 @@ export const WEEK_SCHEDULE: PlannedSession[] = [
 
 export const SESSIONS_PER_WEEK = WEEK_SCHEDULE.length
 
+/** Standaardtijden per dagdeel, gebruikt om je dag in te plannen. */
+export const SLOT_TIMES: Record<Slot, { start: string; end: string }> = {
+  VM: { start: '07:30', end: '09:00' },
+  NM: { start: '17:00', end: '18:30' },
+}
+
 export function sessionsFor(dateKey: string): PlannedSession[] {
   const wd = isoWeekday(dateKey)
   return WEEK_SCHEDULE.filter((s) => s.weekday === wd)

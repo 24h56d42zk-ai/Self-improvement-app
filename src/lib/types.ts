@@ -46,6 +46,8 @@ export interface Task {
   /** Aan welk doel deze taak bijdraagt; null = losse taak */
   goalId?: string | null
   repeat?: Repeat
+  /** Geschatte duur in minuten; gebruikt om je dag in te plannen */
+  estimateMin?: number
 }
 
 export interface NetWorthSnapshot {
