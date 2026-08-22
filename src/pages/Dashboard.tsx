@@ -13,6 +13,8 @@ import Reflection from '../components/Reflection'
 import { Hard75Checks, Hard75Grid } from '../components/Hard75Bits'
 import { Empty, Legend, Panel, Ring, ToneLine } from '../components/Hud'
 import { NetWorthArea, ScoreTrend, WeekSessions, type WeekBar } from '../components/charts'
+import { AchievementsPanel, EffortPanel, LevelPanel, StreaksPanel } from '../components/Progress'
+import { levelFor, totalXp } from '../lib/progress'
 
 export default function Dashboard() {
   const { db, setDay } = useStore()
@@ -60,6 +62,7 @@ export default function Dashboard() {
 
   const week = sessionsThisWeek(db, today)
   const tasks = tasksOnDay(db, today)
+  const level = useMemo(() => levelFor(totalXp(db)), [db])
 
   function toggleHard(key: Hard75Key) {
     setDay(today, (d) => { d.hard75[key] = !d.hard75[key] })
@@ -121,6 +124,10 @@ export default function Dashboard() {
           <div className="grid items-start gap-4 md:grid-cols-[auto_minmax(0,1fr)]">
             <Panel hud title="Dagscore" className="flex flex-col items-center justify-center">
               <Ring value={score} label="vandaag" sub={`${hard.todayCount}/5 · ${week.done}/${WEEK_TARGET}`} />
+              <div className="mt-3 w-full border-t border-line/60 pt-2 text-center">
+                <span className="num text-sm font-bold text-accent">niveau {level.level}</span>
+                <span className="num ml-2 text-[10px] text-muted">{level.percent}% naar {level.level + 1}</span>
+              </div>
             </Panel>
             <Panel title="Dagscore, 14 dagen">
               <ScoreTrend data={trend} />
@@ -156,7 +163,16 @@ export default function Dashboard() {
               <Reflection dateKey={today} />
             </Panel>
           </div>
+
         </div>
+      </div>
+
+      {/* Voortgang over de volle breedte: dit hoort niet in één kolom te hangen. */}
+      <div className="grid items-start gap-4 lg:grid-cols-2 xl:grid-cols-4">
+        <LevelPanel />
+        <StreaksPanel />
+        <EffortPanel />
+        <AchievementsPanel compact />
       </div>
     </div>
   )

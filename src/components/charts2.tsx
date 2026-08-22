@@ -68,7 +68,8 @@ export function TimeSeries({
           <Tooltip content={tip} cursor={{ stroke: CHROME.accent, strokeWidth: 1, strokeDasharray: '3 3' }} />
           {series.map((s) => (
             <Line key={s.key} type="monotone" dataKey={s.key} stroke={s.color} strokeWidth={2}
-              dot={false} activeDot={{ r: 4, stroke: CHROME.surface, strokeWidth: 2 }} />
+              dot={false} activeDot={{ r: 4, stroke: CHROME.surface, strokeWidth: 2 }}
+              isAnimationActive={false} />
           ))}
         </LineChart>
       </ResponsiveContainer>
@@ -83,7 +84,8 @@ export function TimeSeries({
         <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={48} tickFormatter={format} />
         <Tooltip content={tip} cursor={{ fill: 'rgba(34,211,238,.06)' }} />
         {series.map((s) => (
-          <Bar key={s.key} dataKey={s.key} fill={s.color} stroke={CHROME.surface} strokeWidth={2} radius={[4, 4, 0, 0]} />
+          <Bar key={s.key} dataKey={s.key} fill={s.color} stroke={CHROME.surface} strokeWidth={2}
+            radius={[4, 4, 0, 0]} isAnimationActive={false} />
         ))}
       </BarChart>
     </ResponsiveContainer>
@@ -93,12 +95,13 @@ export function TimeSeries({
 /* ── Rangschikking: horizontale balken ──────────────────────────────────── */
 
 export function RankBars({
-  data, height, format = (n: number) => String(n), color = SERIES.aqua,
+  data, height, format = (n: number) => String(n), color = SERIES.aqua, labelWidth = 150,
 }: {
   data: { label: string; value: number; color?: string }[]
   height?: number
   format?: (n: number) => string
   color?: string
+  labelWidth?: number
 }) {
   const h = height ?? Math.max(90, data.length * 30 + 20)
   const tip = ({ active, payload }: TooltipProps<number, string>) => {
@@ -111,9 +114,9 @@ export function RankBars({
       <BarChart data={data} layout="vertical" margin={{ top: 2, right: 12, bottom: 2, left: 0 }} barCategoryGap="22%">
         <CartesianGrid stroke={CHROME.grid} strokeDasharray="2 4" horizontal={false} />
         <XAxis type="number" tick={axisStyle} axisLine={false} tickLine={false} tickFormatter={format} />
-        <YAxis type="category" dataKey="label" tick={axisStyle} axisLine={false} tickLine={false} width={120} />
+        <YAxis type="category" dataKey="label" tick={axisStyle} axisLine={false} tickLine={false} width={labelWidth} />
         <Tooltip content={tip} cursor={{ fill: 'rgba(34,211,238,.06)' }} />
-        <Bar dataKey="value" stroke={CHROME.surface} strokeWidth={2} radius={[0, 4, 4, 0]}>
+        <Bar dataKey="value" stroke={CHROME.surface} strokeWidth={2} radius={[0, 4, 4, 0]} isAnimationActive={false}>
           {data.map((d, i) => <Cell key={i} fill={d.color ?? color} />)}
         </Bar>
       </BarChart>
@@ -188,7 +191,7 @@ export function Correlation({
         <YAxis type="number" dataKey="y" name={yLabel} tick={axisStyle} axisLine={false} tickLine={false} width={40} />
         <ZAxis range={[60, 60]} />
         <Tooltip content={tip} cursor={{ strokeDasharray: '3 3', stroke: CHROME.accent }} />
-        <Scatter data={data} fill={color} stroke={CHROME.surface} strokeWidth={1.5} />
+        <Scatter data={data} fill={color} stroke={CHROME.surface} strokeWidth={1.5} isAnimationActive={false} />
       </ScatterChart>
     </ResponsiveContainer>
   )

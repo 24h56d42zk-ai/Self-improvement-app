@@ -406,8 +406,8 @@ function Analyse() {
       </div>
 
       <Panel title="Bestsellers" right={<span className="num text-[11px] text-muted">op omzet</span>}>
-        <RankBars data={top.map((t) => ({ label: t.name.length > 22 ? `${t.name.slice(0, 21)}…` : t.name, value: t.revenue }))}
-          format={euro} />
+        <RankBars data={top.map((t) => ({ label: t.name.length > 20 ? `${t.name.slice(0, 19)}…` : t.name, value: t.revenue }))}
+          format={euro} labelWidth={170} />
         <ul className="mt-2 space-y-1 border-t border-line/60 pt-2">
           {top.map((t) => (
             <li key={t.name} className="flex items-center gap-2 text-sm">

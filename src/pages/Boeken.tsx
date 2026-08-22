@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react'
 import { BookOpen, Plus, Quote as QuoteIcon, Trash2 } from 'lucide-react'
 import { useStore } from '../lib/store'
-import { formatShort, todayKey } from '../lib/date'
+import { formatLong, formatShort, todayKey } from '../lib/date'
 import { STATUSES, coverColor, progressPercent, type Book, type BookStatus } from '../lib/books'
-import { bookStats } from '../lib/booksDerive'
+import {
+  bookStats, booksByCategory, estimatedFinish, finishedByMonth, pagesByWeek,
+  ratingSpread, readingPace, readingStreak,
+} from '../lib/booksDerive'
+import { ChartLegend, Donut, RankBars, TimeSeries } from '../components/charts2'
 import { SERIES, STATUS } from '../lib/palette'
 import { Bar, Empty, Panel, Ring } from '../components/Hud'
 
@@ -14,6 +18,13 @@ export default function Boeken() {
   const [filter, setFilter] = useState<BookStatus | 'alle'>('alle')
 
   const stats = useMemo(() => bookStats(db, today), [db, today])
+  const pace = useMemo(() => readingPace(db, 30, today), [db, today])
+  const streak = useMemo(() => readingStreak(db, today), [db, today])
+  const weekly = useMemo(() => pagesByWeek(db, 12, today), [db, today])
+  const perMonth = useMemo(() => finishedByMonth(db, today), [db, today])
+  const cats = useMemo(() => booksByCategory(db), [db])
+  const ratings = useMemo(() => ratingSpread(db), [db])
+  const activeBooks = useMemo(() => db.books.filter((b) => b.status === 'bezig'), [db.books])
   const books = useMemo(
     () => db.books
       .filter((b) => filter === 'alle' || b.status === filter)
@@ -94,12 +105,14 @@ export default function Boeken() {
         </Panel>
 
         <Panel title="Dit jaar">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {[
               { label: 'Gelezen', value: stats.finishedThisYear, color: SERIES.magenta },
               { label: 'Pagina\'s', value: stats.pagesThisYear.toLocaleString('nl-BE'), color: undefined },
               { label: 'Aan het lezen', value: stats.reading, color: undefined },
               { label: 'Op dit tempo', value: stats.pace === null ? '—' : `${stats.pace}/jaar`, color: stats.pace !== null && stats.pace >= db.bookGoal ? STATUS.good : STATUS.warning },
+              { label: 'Leesreeks', value: streak === 0 ? '—' : `${streak} d`, color: streak >= 7 ? STATUS.good : undefined },
+              { label: 'Tempo', value: pace === null ? '—' : `${pace} p/dag`, color: undefined },
             ].map((s) => (
               <div key={s.label}>
                 <div className="label truncate">{s.label}</div>
@@ -164,6 +177,70 @@ export default function Boeken() {
           </ul>
         )}
       </Panel>
+
+      {db.reading.length > 0 && (
+        <div className="grid items-start gap-4 xl:grid-cols-2">
+          <Panel title="Pagina's per week"
+            right={<ChartLegend items={[{ label: "pagina's", color: SERIES.magenta }]} />}>
+            <TimeSeries
+              data={weekly}
+              series={[{ key: 'pagina', label: "pagina's", color: SERIES.magenta }]}
+              height={170}
+            />
+            <p className="mt-1 text-[11px] text-muted">
+              {pace !== null && `Op je leesdagen haal je gemiddeld ${pace} pagina's.`}
+            </p>
+          </Panel>
+
+          <Panel title="Uitgelezen per maand">
+            <TimeSeries
+              data={perMonth}
+              series={[{ key: 'boeken', label: 'boeken', color: SERIES.violet }]}
+              height={170}
+            />
+          </Panel>
+        </div>
+      )}
+
+      {activeBooks.length > 0 && pace !== null && (
+        <Panel title="Wanneer je ze uit hebt" right={<span className="num text-[11px] text-muted">op je huidige tempo</span>}>
+          <ul className="space-y-2">
+            {activeBooks.map((b) => {
+              const finish = estimatedFinish(b, pace, today)
+              const left = (b.pages ?? 0) - b.currentPage
+              return (
+                <li key={b.id}>
+                  <div className="mb-1 flex items-baseline justify-between gap-2 text-sm">
+                    <span className="min-w-0 truncate text-ink">{b.title}</span>
+                    <span className="num shrink-0 text-[11px] text-muted">
+                      {left > 0 ? `nog ${left} p` : 'bijna uit'}
+                      {finish && ` · ${formatLong(finish)}`}
+                    </span>
+                  </div>
+                  <Bar value={progressPercent(b)} max={100} color={SERIES.magenta} />
+                </li>
+              )
+            })}
+          </ul>
+        </Panel>
+      )}
+
+      {db.books.length > 2 && (
+        <div className="grid items-start gap-4 xl:grid-cols-2">
+          <Panel title="Waar je over leest">
+            <Donut data={cats} format={(n) => `${n} ${n === 1 ? 'boek' : 'boeken'}`}
+              centerValue={String(db.books.length)} centerLabel="boeken" />
+          </Panel>
+          <Panel title="Hoe je ze beoordeelt">
+            {ratings.some((r) => r.value > 0) ? (
+              <RankBars data={ratings.filter((r) => r.value > 0).reverse().map((r) => ({ ...r, color: SERIES.magenta }))}
+                format={(n) => `${n}`} />
+            ) : (
+              <Empty>Nog geen boeken beoordeeld. Geef een boek sterren als je het uit hebt.</Empty>
+            )}
+          </Panel>
+        </div>
+      )}
 
       {active && <BookDetail book={active} onPatch={(c) => patch(active.id, c)} onLog={logReading}
         onClose={() => setSelected(null)}

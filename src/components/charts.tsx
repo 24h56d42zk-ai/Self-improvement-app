@@ -49,7 +49,7 @@ export function ScoreTrend({ data }: { data: { label: string; score: number }[] 
         <YAxis domain={[0, 100]} ticks={[0, 50, 100]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
         <Tooltip content={tip} cursor={{ stroke: CHROME.accent, strokeWidth: 1, strokeDasharray: '3 3' }} />
         <Area type="monotone" dataKey="score" stroke={CHROME.accent} strokeWidth={2}
-          fill="url(#scoreFill)" dot={false} activeDot={{ r: 4, stroke: CHROME.surface, strokeWidth: 2 }} />
+          fill="url(#scoreFill)" dot={false} activeDot={{ r: 4, stroke: CHROME.surface, strokeWidth: 2 }} isAnimationActive={false} />
       </AreaChart>
     </ResponsiveContainer>
   )
@@ -82,10 +82,10 @@ export function WeekSessions({ data }: { data: WeekBar[] }) {
         />
         <Tooltip content={tip} cursor={{ fill: 'rgba(34,211,238,.06)' }} />
         {/* Volle balkhoogte = wat gepland stond; het grijze restant bovenaan is wat je liet liggen. */}
-        <Bar dataKey="zwem"   stackId="d" fill={SESSION_STYLE.zwem.color}  stroke={CHROME.surface} strokeWidth={2} radius={4} />
-        <Bar dataKey="loop"   stackId="d" fill={SESSION_STYLE.loop.color}  stroke={CHROME.surface} strokeWidth={2} radius={4} />
-        <Bar dataKey="hyrox"  stackId="d" fill={SESSION_STYLE.hyrox.color} stroke={CHROME.surface} strokeWidth={2} radius={4} />
-        <Bar dataKey="gemist" stackId="d" fill={CHROME.grid}               stroke={CHROME.surface} strokeWidth={2} radius={4} />
+        <Bar dataKey="zwem"   stackId="d" fill={SESSION_STYLE.zwem.color}  stroke={CHROME.surface} strokeWidth={2} radius={4} isAnimationActive={false} />
+        <Bar dataKey="loop"   stackId="d" fill={SESSION_STYLE.loop.color}  stroke={CHROME.surface} strokeWidth={2} radius={4} isAnimationActive={false} />
+        <Bar dataKey="hyrox"  stackId="d" fill={SESSION_STYLE.hyrox.color} stroke={CHROME.surface} strokeWidth={2} radius={4} isAnimationActive={false} />
+        <Bar dataKey="gemist" stackId="d" fill={CHROME.grid}               stroke={CHROME.surface} strokeWidth={2} radius={4} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -127,8 +127,8 @@ export function NetWorthArea({ data }: { data: { date: string; cash: number; inv
         <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={58}
           tickFormatter={(v: number) => `€${Math.round(v / 1000)}k`} />
         <Tooltip content={tip} cursor={{ stroke: CHROME.accent, strokeWidth: 1, strokeDasharray: '3 3' }} />
-        <Area type="monotone" dataKey="inventory" stackId="w" stroke={SERIES.aqua} strokeWidth={2} fill="url(#invFill)" />
-        <Area type="monotone" dataKey="cash" stackId="w" stroke={SERIES.blue} strokeWidth={2} fill="url(#cashFill)" />
+        <Area type="monotone" dataKey="inventory" stackId="w" stroke={SERIES.aqua} strokeWidth={2} fill="url(#invFill)" isAnimationActive={false} />
+        <Area type="monotone" dataKey="cash" stackId="w" stroke={SERIES.blue} strokeWidth={2} fill="url(#cashFill)" isAnimationActive={false} />
       </AreaChart>
     </ResponsiveContainer>
   )
@@ -162,7 +162,7 @@ export function StationRadar({ data }: { data: RadarPoint[] }) {
         <Radar name="doel" dataKey="doel" stroke={CHROME.axis} strokeWidth={1}
           strokeDasharray="3 3" fill="none" isAnimationActive={false} />
         <Radar name="jouw score" dataKey="score" stroke={SERIES.orange} strokeWidth={2}
-          fill={SERIES.orange} fillOpacity={0.22} />
+          fill={SERIES.orange} fillOpacity={0.22} isAnimationActive={false} />
       </RadarChart>
     </ResponsiveContainer>
   )
@@ -190,8 +190,8 @@ export function VolumeKm({ data }: { data: VolumePoint[] }) {
         <XAxis dataKey="label" tick={axisStyle} axisLine={false} tickLine={false} minTickGap={12} />
         <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={30} unit="" />
         <Tooltip content={tip} cursor={{ fill: 'rgba(34,211,238,.06)' }} />
-        <Bar dataKey="loopKm" stackId="v" fill={SESSION_STYLE.loop.color} stroke={CHROME.surface} strokeWidth={2} radius={4} />
-        <Bar dataKey="zwemKm" stackId="v" fill={SESSION_STYLE.zwem.color} stroke={CHROME.surface} strokeWidth={2} radius={4} />
+        <Bar dataKey="loopKm" stackId="v" fill={SESSION_STYLE.loop.color} stroke={CHROME.surface} strokeWidth={2} radius={4} isAnimationActive={false} />
+        <Bar dataKey="zwemKm" stackId="v" fill={SESSION_STYLE.zwem.color} stroke={CHROME.surface} strokeWidth={2} radius={4} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -212,7 +212,7 @@ export function TonnageChart({ data }: { data: VolumePoint[] }) {
         <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={44}
           tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}t` : String(v))} />
         <Tooltip content={tip} cursor={{ fill: 'rgba(34,211,238,.06)' }} />
-        <Bar dataKey="tonnage" fill={SERIES.aqua} stroke={CHROME.surface} strokeWidth={2} radius={[4, 4, 0, 0]} />
+        <Bar dataKey="tonnage" fill={SERIES.aqua} stroke={CHROME.surface} strokeWidth={2} radius={[4, 4, 0, 0]} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -239,7 +239,7 @@ export function LoadTrend({ data }: { data: VolumePoint[] }) {
         <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={40} />
         <Tooltip content={tip} cursor={{ stroke: CHROME.accent, strokeWidth: 1, strokeDasharray: '3 3' }} />
         <Area type="monotone" dataKey="load" stroke={CHROME.accent} strokeWidth={2}
-          fill="url(#loadFill)" dot={false} activeDot={{ r: 4, stroke: CHROME.surface, strokeWidth: 2 }} />
+          fill="url(#loadFill)" dot={false} activeDot={{ r: 4, stroke: CHROME.surface, strokeWidth: 2 }} isAnimationActive={false} />
       </AreaChart>
     </ResponsiveContainer>
   )
@@ -270,7 +270,7 @@ export function ProfitPerFair({ data }: { data: FairBar[] }) {
           tickFormatter={(v: number) => (Math.abs(v) >= 1000 ? `€${Math.round(v / 1000)}k` : `€${v}`)} />
         <Tooltip content={tip} cursor={{ fill: 'rgba(34,211,238,.06)' }} />
         <ReferenceLine y={0} stroke={CHROME.axis} strokeWidth={1} />
-        <Bar dataKey="winst" stroke={CHROME.surface} strokeWidth={2} radius={[4, 4, 0, 0]}>
+        <Bar dataKey="winst" stroke={CHROME.surface} strokeWidth={2} radius={[4, 4, 0, 0]} isAnimationActive={false}>
           {data.map((d) => (
             <Cell key={d.name} fill={d.winst >= 0 ? SERIES.aqua : STATUS.critical} />
           ))}
@@ -296,7 +296,7 @@ export function ReviewForecast({ data }: { data: ForecastBar[] }) {
         <XAxis dataKey="label" tick={axisStyle} axisLine={false} tickLine={false} minTickGap={8} />
         <YAxis allowDecimals={false} tick={axisStyle} axisLine={false} tickLine={false} width={26} />
         <Tooltip content={tip} cursor={{ fill: 'rgba(34,211,238,.06)' }} />
-        <Bar dataKey="kaarten" fill={SERIES.blue} stroke={CHROME.surface} strokeWidth={2} radius={[4, 4, 0, 0]} />
+        <Bar dataKey="kaarten" fill={SERIES.blue} stroke={CHROME.surface} strokeWidth={2} radius={[4, 4, 0, 0]} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   )

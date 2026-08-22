@@ -20,6 +20,7 @@ export default function Grades() {
   const { db, update } = useStore()
   const today = todayKey()
   const [filter, setFilter] = useState<string>('alle')
+  const [showAll, setShowAll] = useState(false)
   const [draft, setDraft] = useState({
     subjectId: '', title: '', date: today, score: '', max: '20', kind: 'toets' as GradeKind,
   })
@@ -167,19 +168,28 @@ export default function Grades() {
                 <>
                   <TimeSeries
                     data={progress}
-                    series={[
-                      { key: 'punt', label: 'punt', color: SERIES.violet },
-                      { key: 'gemiddelde', label: 'gemiddelde tot dan', color: SERIES.blue },
-                    ]}
+                    series={filter === 'alle'
+                      ? [{ key: 'gemiddelde', label: 'gemiddelde tot dan', color: SERIES.blue }]
+                      : [
+                          { key: 'punt', label: 'punt', color: SERIES.violet },
+                          { key: 'gemiddelde', label: 'gemiddelde tot dan', color: SERIES.blue },
+                        ]}
                     type="line"
                     format={(n) => `${n}%`}
                   />
                   <div className="mt-1">
-                    <ChartLegend items={[
-                      { label: 'los punt', color: SERIES.violet },
-                      { label: 'gemiddelde tot dan', color: SERIES.blue },
-                    ]} />
+                    <ChartLegend items={filter === 'alle'
+                      ? [{ label: 'gemiddelde tot dan', color: SERIES.blue }]
+                      : [
+                          { label: 'los punt', color: SERIES.violet },
+                          { label: 'gemiddelde tot dan', color: SERIES.blue },
+                        ]} />
                   </div>
+                  <p className="mt-1 text-[11px] text-muted">
+                    {filter === 'alle'
+                      ? 'Kies een vak om ook de losse punten te zien — over alle vakken samen zegt een los punt weinig.'
+                      : 'De blauwe lijn is je gemiddelde tot op dat moment.'}
+                  </p>
                 </>
               ) : (
                 <Empty>Vanaf twee punten zie je hier je verloop.</Empty>
@@ -189,7 +199,7 @@ export default function Grades() {
 
           <Panel title="Alle punten" right={<span className="num text-[11px] text-muted">{list.length}</span>}>
             <ul className="space-y-1">
-              {list.map((g) => {
+              {(showAll ? list : list.slice(0, 15)).map((g) => {
                 const pct = gradePercent(g)
                 const subject = db.subjects.find((s) => s.id === g.subjectId)
                 return (
@@ -211,6 +221,11 @@ export default function Grades() {
                 )
               })}
             </ul>
+            {list.length > 15 && (
+              <button className="btn mt-3 w-full" onClick={() => setShowAll(!showAll)}>
+                {showAll ? 'Minder tonen' : `Alle ${list.length} punten tonen`}
+              </button>
+            )}
           </Panel>
         </>
       )}

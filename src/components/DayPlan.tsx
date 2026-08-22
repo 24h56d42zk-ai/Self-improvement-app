@@ -14,6 +14,10 @@ export default function DayPlan({ dateKey }: { dateKey: string }) {
   const { blocks, unplanned } = useMemo(() => planDay(db, dateKey), [db, dateKey])
 
   const span = PLAN_DAY_END - PLAN_DAY_START
+  // Vaste hoogte per uur: anders wordt een blok van een half uur onleesbaar dun.
+  const PX_PER_HOUR = 46
+  const height = (span / 60) * PX_PER_HOUR
+  const y = (minute: number) => ((minute - PLAN_DAY_START) / 60) * PX_PER_HOUR
   const busy = blocks.filter((b) => b.kind !== 'vrij')
 
   function toggleTask(id: string) {
@@ -34,13 +38,12 @@ export default function DayPlan({ dateKey }: { dateKey: string }) {
 
   return (
     <div>
-      <div className="relative" style={{ height: 420 }}>
+      <div className="relative" style={{ height }}>
         {/* uurlijnen */}
         {Array.from({ length: Math.floor(span / 60) + 1 }, (_, i) => {
           const minute = PLAN_DAY_START + i * 60
-          const top = ((minute - PLAN_DAY_START) / span) * 100
           return (
-            <div key={i} className="absolute inset-x-0 flex items-center gap-2" style={{ top: `${top}%` }}>
+            <div key={i} className="absolute inset-x-0 flex items-center gap-2" style={{ top: y(minute) }}>
               <span className="num w-9 shrink-0 text-[9px] text-muted">{fromMinutes(minute)}</span>
               <span className="h-px flex-1 bg-line/50" />
             </div>
@@ -50,17 +53,18 @@ export default function DayPlan({ dateKey }: { dateKey: string }) {
         {/* blokken */}
         <div className="absolute inset-y-0 left-11 right-0">
           {blocks.map((b, i) => {
-            const top = ((b.start - PLAN_DAY_START) / span) * 100
-            const height = ((b.end - b.start) / span) * 100
+            const top = y(b.start)
+            const blockHeight = Math.max(22, y(b.end) - y(b.start) - 3)
+            const tight = blockHeight < 34
             const isFree = b.kind === 'vrij'
             return (
               <div key={i}
-                className={`absolute left-0 right-0 overflow-hidden rounded-md border px-2 py-1 ${
-                  isFree ? 'border-dashed border-line/70' : 'border-line'
-                }`}
+                className={`absolute left-0 right-0 overflow-hidden rounded-md border px-2 ${
+                  tight ? 'py-0.5' : 'py-1'
+                } ${isFree ? 'border-dashed border-line/70' : 'border-line'}`}
                 style={{
-                  top: `${top}%`,
-                  height: `calc(${height}% - 2px)`,
+                  top,
+                  height: blockHeight,
                   background: isFree ? 'transparent' : `color-mix(in srgb, ${b.color} 14%, #080d16)`,
                   borderLeftWidth: isFree ? 1 : 3,
                   borderLeftColor: b.color,
@@ -80,7 +84,7 @@ export default function DayPlan({ dateKey }: { dateKey: string }) {
                     {fromMinutes(b.start)}–{fromMinutes(b.end)}
                   </span>
                 </div>
-                {b.detail && height > 5 && (
+                {b.detail && !tight && (
                   <div className="num truncate text-[9px] text-muted">{KIND_LABEL[b.kind]} · {b.detail}</div>
                 )}
               </div>
