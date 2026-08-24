@@ -7,77 +7,20 @@
 Eén donker sci-fi dashboard voor school, sport, gezondheid, business en boeken.
 Gebouwd in fases; **fase 1 staat er en is bruikbaar**.
 
-## Wat er nu werkt (fase 1)
+## Wat de app doet
 
-| Onderdeel | Status |
+| Tab | Waarvoor |
 |---|---|
-| Sci-fi HUD-dashboard met bovenbalk (wedstrijden, 75 Hard, vermogen, sessies) | ✅ |
-| 75 Hard: afvinken, streak, 75-daggrid, gemiste regels, herstart | ✅ |
-| Vaste weekschema van 9 sessies, met één tik af te vinken | ✅ |
-| Dagscore (0–100) + trend over 14 dagen | ✅ |
-| Dagelijkse taken per categorie | ✅ |
-| Avondreflectie (3 vragen) | ✅ |
-| Regelgebaseerde ochtendbriefing en avondwaarschuwingen | ✅ |
-| Vermogen (cash + voorraad) over tijd | ✅ |
-| Export/import van al je data als JSON | ✅ |
-| Cloudsync met login (Supabase) | ✅ optioneel |
+| **Dashboard** | Je takenlijst vooraan, sessies van vandaag, 75 Hard afvinken, dagscore en de cijfers die je altijd wil zien |
+| **75 Hard** | Afvinken, streak, het grid van 75 dagen, en welke regel je laat vallen |
+| **Training** | Sessielogboek, de negen Hyrox-stations, PR's, weekvolume en blessurerisico |
+| **Business** | Inventaris, aan- en verkopen, beursrapporten, en een analysetab met maandcijfers, kanalen, marges en verkoopsnelheid |
+| **School** | Documenten per vak, projecten en eindwerk, en de presentatiemaker die een echte pptx exporteert |
+| **Boeken** | Boekenplank, samenvattingen en citaten, jaardoel en leestempo |
+| **Planning** | Vandaag, week, maand, doelen op drie niveaus, en je lesrooster |
 
-## Wat er nu werkt (fase 2 — training)
-
-| Onderdeel | Status |
-|---|---|
-| Sessielogboek: duur, afstand, RPE, oefeningen met sets en gewicht | ✅ |
-| Zeven sjablonen die de hele sessie in één tik invullen | ✅ |
-| Readiness-score naar de eerstvolgende Hyrox, met opsplitsing | ✅ |
-| De 9 Hyrox-stations met eigen doeltijden en een radar | ✅ |
-| Zwakste station automatisch aangewezen | ✅ |
-| PR-muur: stations, tempo's, afstanden en zwaarste sets | ✅ |
-| Kilometers, getild gewicht en belasting per week | ✅ |
-| Acute/chronische belasting met blessurewaarschuwing | ✅ |
-
-## Wat er nu werkt (fase 3 — business)
-
-| Onderdeel | Status |
-|---|---|
-| Inventaris per item: sealed, singles, slabs, accessoires | ✅ |
-| Marktwaarde per item bijwerken, met datum van bijwerken | ✅ |
-| Verkopen vanuit de inventaris, met marge per verkoop | ✅ |
-| Losse aan- en verkopen per kanaal (beurs, Cardmarket, online, direct) | ✅ |
-| Live cash: laatste meting plus alles wat er sindsdien in en uit ging | ✅ |
-| Beursrapport: omzet, kosten, netto winst, marge, winst per uur, best verkocht | ✅ |
-| Vermogen over tijd en netto winst per beurs | ✅ |
-| Signalen: verouderde waardes, stilliggend kapitaal, omzet laatste 30 dagen | ✅ |
-
-## Wat er nu werkt (fase 4 — school)
-
-| Onderdeel | Status |
-|---|---|
-| Vakken met eigen kleur, doorheen de hele module gebruikt | ✅ |
-| Samenvattingen typen of plakken, doorzoekbaar, link naar het origineel | ✅ |
-| Overhoren met spaced repetition (vereenvoudigde SM-2) | ✅ |
-| Woordenlijst in één keer inladen (`term = betekenis`) | ✅ |
-| Herhalingen-vooruitblik over 14 dagen | ✅ |
-| Projecten en eindwerk/GIP met fases, deadlines en achterstandssignaal | ✅ |
-| Bronnenlijst met APA-vermelding en kopieerknop | ✅ |
-| Logboek per werksessie | ✅ |
-| Presentatiemaker met export naar een echt `.pptx`-bestand | ✅ |
-
-## Wat er nu werkt (fase 5 — boeken en planning)
-
-| Onderdeel | Status |
-|---|---|
-| Boekenplank met eigen rug per boek en voortgangsbalk | ✅ |
-| Kernidee, volledige samenvatting en citaten met paginanummer | ✅ |
-| Jaardoel met tempo-inschatting en pagina's per jaar | ✅ |
-| Leessessie loggen; vanaf 10 minuten vinkt de 75 Hard-leesregel af | ✅ |
-| Doelen op jaar-, maand- en weekniveau, aan elkaar te koppelen | ✅ |
-| Taken die aan een weekdoel hangen, met herhaling | ✅ |
-| Weekoverzicht met dagscore, sessies en taken per dag | ✅ |
-| Weekreview met gemiddelde score, sessies en 75 Hard | ✅ |
-| Jaargrid: 365 vakjes gekleurd op je dagscore | ✅ |
-| Vast lesrooster per weekdag | ✅ |
-
-**Alle vijf de fases staan er.**
+Alle grafieken en cijfers rekenen vanaf **24 augustus 2026**; wat daarvoor ligt
+telt niet mee.
 
 ## Online zetten (laptop + gsm)
 

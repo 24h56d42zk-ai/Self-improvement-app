@@ -29,7 +29,7 @@ const euro = (n: number) => `€${Math.round(n).toLocaleString('nl-BE')}`
 
 /* ── Dagscore, laatste 14 dagen ─────────────────────────────────────────── */
 
-export function ScoreTrend({ data }: { data: { label: string; score: number }[] }) {
+export function ScoreTrend({ data }: { data: { label: string; score: number | null }[] }) {
   const tip = ({ active, payload, label }: TooltipProps<number, string>) =>
     active && payload?.length
       ? <TipBox label={String(label)} rows={[{ name: 'dagscore', value: String(payload[0].value), color: CHROME.accent }]} />
@@ -275,28 +275,6 @@ export function ProfitPerFair({ data }: { data: FairBar[] }) {
             <Cell key={d.name} fill={d.winst >= 0 ? SERIES.aqua : STATUS.critical} />
           ))}
         </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  )
-}
-
-/* ── Overhoren: wat komt er de komende dagen aan ────────────────────────── */
-
-export interface ForecastBar { label: string; kaarten: number }
-
-export function ReviewForecast({ data }: { data: ForecastBar[] }) {
-  const tip = ({ active, payload, label }: TooltipProps<number, string>) =>
-    active && payload?.length
-      ? <TipBox label={String(label)} rows={[{ name: 'kaarten', value: String(payload[0].value), color: SERIES.blue }]} />
-      : null
-  return (
-    <ResponsiveContainer width="100%" height={150}>
-      <BarChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }} barCategoryGap="24%">
-        <CartesianGrid stroke={CHROME.grid} strokeDasharray="2 4" vertical={false} />
-        <XAxis dataKey="label" tick={axisStyle} axisLine={false} tickLine={false} minTickGap={8} />
-        <YAxis allowDecimals={false} tick={axisStyle} axisLine={false} tickLine={false} width={26} />
-        <Tooltip content={tip} cursor={{ fill: 'rgba(34,211,238,.06)' }} />
-        <Bar dataKey="kaarten" fill={SERIES.blue} stroke={CHROME.surface} strokeWidth={2} radius={[4, 4, 0, 0]} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   )

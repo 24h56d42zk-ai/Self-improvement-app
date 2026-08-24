@@ -132,7 +132,6 @@ export function dayHasData(db: Database, dateKey: string): boolean {
     Object.values(log.sessions).some(Boolean) ||
     log.extra > 0 ||
     log.ateHealthy !== null ||
-    log.reflection !== null ||
     log.note.trim() !== ''
   )
 }

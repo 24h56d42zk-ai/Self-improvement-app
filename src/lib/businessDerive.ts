@@ -2,6 +2,7 @@ import type { Database } from './types'
 import type { Channel, Fair, InventoryItem, ItemCategory, Trade } from './business'
 import { CATEGORIES, CHANNELS, fairCosts } from './business'
 import { daysBetween, todayKey } from './date'
+import { afterStart } from './appStart'
 
 /* ── Inventaris ─────────────────────────────────────────────────────────── */
 
@@ -142,6 +143,7 @@ export function inventoryCoverage(db: Database): Coverage {
  */
 export function wealthSeries(db: Database, today = todayKey()): WealthPoint[] {
   const points: WealthPoint[] = [...db.netWorth]
+    .filter((s) => afterStart(s.date))
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((s) => ({ date: s.date, cash: s.cash, inventory: s.inventory, total: s.cash + s.inventory }))
 
@@ -252,6 +254,8 @@ function sum(list: number[]): number {
 export interface MonthStats {
   month: string
   label: string
+  /** Ligt deze maand op of na de startdatum van de app? */
+  inRange: boolean
   revenue: number
   profit: number
   spend: number
@@ -263,7 +267,7 @@ const MONTH_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'se
 
 export function monthlyStats(db: Database, months = 12, today = todayKey()): MonthStats[] {
   const [y, m] = today.split('-').map(Number)
-  return Array.from({ length: months }, (_, i) => {
+  const all = Array.from({ length: months }, (_, i) => {
     const d = new Date(y, m - 1 - (months - 1 - i), 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const inMonth = db.trades.filter((t) => t.date.startsWith(key))
@@ -273,6 +277,7 @@ export function monthlyStats(db: Database, months = 12, today = todayKey()): Mon
     return {
       month: key,
       label: `${MONTH_SHORT[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`,
+      inRange: afterStart(`${key}-28`),
       revenue: Math.round(sum(sales.map(tradeTotal))),
       profit: Math.round(sum(sales.map((t) => tradeProfit(t) ?? 0)) - fairSpend),
       spend: Math.round(sum(buys.map(tradeTotal)) + fairSpend),
@@ -280,6 +285,8 @@ export function monthlyStats(db: Database, months = 12, today = todayKey()): Mon
       transactions: sales.length,
     }
   })
+  // Maanden van voor de start zeggen niets; die horen niet in de grafiek.
+  return all.filter((row) => row.inRange)
 }
 
 /* ── Kanalen ────────────────────────────────────────────────────────────── */

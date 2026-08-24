@@ -25,7 +25,7 @@ export default function Training() {
   const race = EVENTS.find((e) => e.id === 'hyrox-sep')!
   const nextRace = daysBetween(today, race.date) >= 0 ? race : EVENTS.find((e) => e.id === 'hyrox-dec')!
 
-  const volume = useMemo(() => weeklyVolume(db, 12, today), [db, today])
+  const volume = useMemo(() => weeklyVolume(db, 26, today), [db, today])
   const ratio = useMemo(() => loadRatio(db, today), [db, today])
   const ready = useMemo(() => readiness(db, nextRace.date, today), [db, nextRace.date, today])
   const scores = useMemo(() => stationScores(db), [db])

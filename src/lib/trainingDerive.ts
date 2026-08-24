@@ -2,6 +2,7 @@ import type { Database } from './types'
 import type { SessionLog, StationId } from './training'
 import { STATIONS, station, tonnage } from './training'
 import { addDays, daysBetween, formatShort, startOfWeek, todayKey, weekKeys } from './date'
+import { afterStart } from './appStart'
 import { sessionsFor } from './schedule'
 
 /* ── Weekvolume ─────────────────────────────────────────────────────────── */
@@ -19,7 +20,7 @@ export interface WeekVolume {
 
 export function weeklyVolume(db: Database, weeks = 12, today = todayKey()): WeekVolume[] {
   const thisWeek = startOfWeek(today)
-  return Array.from({ length: weeks }, (_, i) => {
+  const all = Array.from({ length: weeks }, (_, i) => {
     const weekStart = addDays(thisWeek, (i - weeks + 1) * 7)
     const keys = weekKeys(weekStart)
     const logs = db.sessionLogs.filter((l) => keys.includes(l.date))
@@ -39,6 +40,8 @@ export function weeklyVolume(db: Database, weeks = 12, today = todayKey()): Week
       planned: keys.reduce((n, k) => n + sessionsFor(k).length, 0),
     }
   })
+  // Weken van voor de start tellen niet mee.
+  return all.filter((w) => afterStart(addDays(w.weekStart, 6)))
 }
 
 /* ── Belasting en blessurerisico ────────────────────────────────────────── */

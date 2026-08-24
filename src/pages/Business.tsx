@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store'
-import { addDays, formatShort, todayKey } from '../lib/date'
+import { formatShort, todayKey } from '../lib/date'
 import { euro } from '../lib/business'
 import {
   byCategory, daysInStock, fairReports, inventoryCoverage, inventoryTotals, itemValue,
-  salesSummary, slowMovers, staleValues, wealthSeries,
+  slowMovers, wealthSeries,
 } from '../lib/businessDerive'
 import { inventoryFromList, setCash, setInventory, setTotal, wealth } from '../lib/wealth'
 import EditableMoney from '../components/EditableMoney'
 import { SERIES, STATUS } from '../lib/palette'
-import { Bar, Empty, Legend, Panel, ToneLine } from '../components/Hud'
+import { Bar, Empty, Legend, Panel } from '../components/Hud'
 import { NetWorthArea, ProfitPerFair } from '../components/charts'
 import { ChartLegend, Donut, RankBars, SERIES_ORDER, TimeSeries } from '../components/charts2'
 import {
@@ -33,9 +33,7 @@ export default function Business() {
   const wealthPoints = useMemo(() => wealthSeries(db, today), [db, today])
   const cats = useMemo(() => byCategory(db.inventory), [db.inventory])
   const reports = useMemo(() => fairReports(db), [db])
-  const stale = useMemo(() => staleValues(db.inventory, 60, today), [db.inventory, today])
   const slow = useMemo(() => slowMovers(db.inventory, 90, today), [db.inventory, today])
-  const sales30 = useMemo(() => salesSummary(db, addDays(today, -30)), [db, today])
   const coverage = useMemo(() => inventoryCoverage(db), [db])
 
   const inventoryShown = money.inventory
@@ -116,57 +114,6 @@ export default function Business() {
               </div>
             </div>
           </div>
-
-          <Panel hud title="Wat er nu opvalt">
-            <ul className="space-y-1.5">
-              {!coverage.complete && coverage.measured > 0 && (
-                <ToneLine tone="warn">
-                  Je inventarislijst telt {euro(coverage.live)} op, tegenover {euro(coverage.measured)} in je laatste
-                  meting. Zolang dat gat er is rekent de grafiek met je metingen, niet met de lijst — vul de lijst aan
-                  of werk je meting bij.
-                </ToneLine>
-              )}
-              {!money.since && (
-                <ToneLine tone="warn">
-                  Nog geen cashmeting. Klik hierboven op het bedrag bij Cash en zet je startbedrag —
-                  daarna rekent alles vanzelf verder.
-                </ToneLine>
-              )}
-              {stale.length > 0 && (
-                <ToneLine tone="warn">
-                  {stale.length} {stale.length === 1 ? 'item is' : 'items zijn'} langer dan 60 dagen niet bijgewerkt —
-                  samen {euro(stale.reduce((n, i) => n + itemValue(i), 0))} aan verouderde cijfers.
-                </ToneLine>
-              )}
-              {slow.length > 0 && (
-                <ToneLine tone="warn">
-                  {euro(slow.reduce((n, i) => n + itemValue(i), 0))} ligt 90 dagen of langer stil
-                  ({slow.length} {slow.length === 1 ? 'regel' : 'regels'}). Dat is geld dat niet werkt.
-                </ToneLine>
-              )}
-              {sales30.transactions > 0 && (
-                <ToneLine tone={sales30.profit >= 0 ? 'good' : 'bad'}>
-                  Laatste 30 dagen: {euro(sales30.revenue)} omzet, {sales30.profit >= 0 ? '+' : ''}{euro(sales30.profit)} winst
-                  over {sales30.transactions} verkopen
-                  {sales30.margin !== null && ` (marge ${Math.round(sales30.margin)}%)`}.
-                </ToneLine>
-              )}
-              {reports.length > 0 && (() => {
-                const best = [...reports].sort((a, b) => b.netProfit - a.netProfit)[0]
-                return (
-                  <ToneLine tone="neutral">
-                    Beste beurs tot nu: {best.fair.name} met {euro(best.netProfit)} netto
-                    {best.profitPerHour !== null && ` (${euro(best.profitPerHour)} per uur)`}.
-                  </ToneLine>
-                )
-              })()}
-              {db.inventory.length === 0 && (
-                <ToneLine tone="neutral">
-                  Nog geen inventaris. Begin bij je grootste posities — die bepalen je waarde toch het meest.
-                </ToneLine>
-              )}
-            </ul>
-          </Panel>
 
           <div className="grid gap-4 xl:grid-cols-2">
             <Panel title="Vermogen over tijd"

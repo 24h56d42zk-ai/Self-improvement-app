@@ -1,53 +1,30 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useStore } from '../lib/store'
-import { addDays, dayShort, formatLong, formatShort, startOfWeek, todayKey, weekKeys } from '../lib/date'
-import { dayHasData, dayScore, sessionsOnDay, tasksOnDay } from '../lib/derive'
-import { weekReview } from '../lib/briefing'
-import { goalPercent, periodFor, periodLabel } from '../lib/planning'
-import { SESSION_STYLE, sessionsFor } from '../lib/schedule'
-import { scoreColor } from '../lib/palette'
-import { SERIES, STATUS } from '../lib/palette'
-import { Bar, Empty, Panel, Ring, ToneLine } from '../components/Hud'
-import Tasks from '../components/Tasks'
-import { DOMAIN_STYLE } from '../components/Tasks'
-import Goals from '../components/Goals'
-import YearGrid from '../components/YearGrid'
-import Lessons from '../components/Lessons'
+import { addDays, formatLong, startOfWeek, todayKey } from '../lib/date'
+import { periodFor, periodLabel } from '../lib/planning'
+import { Panel } from '../components/Hud'
+import TodayTasks from '../components/TodayTasks'
 import DayPlan from '../components/DayPlan'
+import WeekBoard from '../components/WeekBoard'
 import MonthView from '../components/MonthView'
-import { carryOver, overdueTasks } from '../lib/autoplan'
-import { TimeSeries } from '../components/charts2'
+import GoalsSimple from '../components/GoalsSimple'
+import Lessons from '../components/Lessons'
 
-const TABS = ['Vandaag', 'Week', 'Maand', 'Doelen', 'Jaar', 'Lesrooster'] as const
+const TABS = ['Vandaag', 'Week', 'Maand', 'Doelen', 'Lesrooster'] as const
 type Tab = (typeof TABS)[number]
 
+/**
+ * Planning is bedoeld om elke dag te gebruiken, niet om naar te kijken.
+ * Vandaag om te werken, week en maand om vooruit te zien, doelen om de
+ * richting vast te houden.
+ */
 export default function Planning() {
-  const { db, update } = useStore()
+  const { db } = useStore()
   const today = todayKey()
   const [tab, setTab] = useState<Tab>('Vandaag')
   const [anchor, setAnchor] = useState(today)
   const [selectedDay, setSelectedDay] = useState(today)
-
-  const days = useMemo(() => weekKeys(anchor), [anchor])
-  const review = useMemo(() => weekReview(db, today), [db, today])
-  const weekGoals = db.goals.filter((g) => g.horizon === 'week' && g.period === periodFor('week', anchor))
-  const overdue = useMemo(() => overdueTasks(db, today), [db, today])
-  const completion = useMemo(() => {
-    return Array.from({ length: 8 }, (_, i) => {
-      const keys = weekKeys(addDays(today, (i - 7) * 7))
-      const tasks = db.tasks.filter((t) => t.date && keys.includes(t.date))
-      const sessions = keys.reduce((acc, k) => {
-        const s = sessionsOnDay(db, k)
-        return { done: acc.done + s.done, planned: acc.planned + s.planned }
-      }, { done: 0, planned: 0 })
-      return {
-        label: formatShort(keys[0]),
-        taken: tasks.length === 0 ? 0 : Math.round((tasks.filter((t) => t.done).length / tasks.length) * 100),
-        sessies: sessions.planned === 0 ? 0 : Math.round((sessions.done / sessions.planned) * 100),
-      }
-    })
-  }, [db, today])
 
   return (
     <div className="mx-auto max-w-[1500px] space-y-4">
@@ -56,7 +33,7 @@ export default function Planning() {
           <h1 className="num text-2xl font-bold text-ink">PLANNING</h1>
           <p className="text-sm text-muted">{formatLong(today)}</p>
         </div>
-        <nav className="flex gap-1" role="tablist">
+        <nav className="flex flex-wrap gap-1" role="tablist">
           {TABS.map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
               className={`rounded-md px-3 py-1.5 text-sm transition ${
@@ -69,193 +46,57 @@ export default function Planning() {
       </header>
 
       {tab === 'Vandaag' && (
-        <>
-          {overdue.length > 0 && (
-            <Panel className="border-warn/50 bg-warn/5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-warn">
-                  ! {overdue.length} {overdue.length === 1 ? 'taak staat' : 'taken staan'} nog open van eerdere dagen.
-                </p>
-                <button className="btn border-warn/60 text-warn hover:border-warn"
-                  onClick={() => update((db) => { carryOver(db, today) })}>
-                  Naar vandaag halen
-                </button>
-              </div>
-            </Panel>
-          )}
-
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)]">
-            <Panel hud title="Je dag" right={<span className="num text-[11px] text-muted">{formatLong(today)}</span>}>
-              <DayPlan dateKey={today} />
-              <p className="mt-3 border-t border-line/60 pt-2 text-[11px] text-muted">
-                Automatisch gebouwd uit je lesrooster en je trainingsschema; je taken worden in de gaten
-                gelegd, de belangrijkste eerst.
-              </p>
-            </Panel>
-
-            <div className="space-y-4">
-              <Panel title="Taken vandaag">
-                <Tasks dateKey={today} full />
-              </Panel>
-              <Panel title="Hoeveel je afwerkt, per week"
-                right={<span className="num text-[11px] text-muted">8 weken</span>}>
-                <TimeSeries
-                  data={completion}
-                  series={[
-                    { key: 'taken', label: 'taken af', color: '#22d3ee' },
-                    { key: 'sessies', label: 'sessies gedaan', color: SERIES.orange },
-                  ]}
-                  type="line"
-                  format={(n) => `${n}%`}
-                  height={180}
-                />
-                <p className="mt-1 text-[11px] text-muted">
-                  Twee lijnen die je week samenvatten. Zakken ze samen, dan is het niet je planning maar je energie.
-                </p>
-              </Panel>
-            </div>
-          </div>
-        </>
-      )}
-
-      {tab === 'Maand' && (
-        <Panel hud title="Maandoverzicht">
-          <MonthView onPickDay={(key) => { setAnchor(key); setSelectedDay(key); setTab('Week') }} />
-        </Panel>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+          <Panel hud title={selectedDay === today ? 'Taken vandaag' : `Taken · ${formatLong(selectedDay)}`}>
+            <TodayTasks dateKey={selectedDay} />
+          </Panel>
+          <Panel title="Je dag" right={<span className="num text-[11px] text-muted">lessen en trainingen</span>}>
+            <DayPlan dateKey={selectedDay} />
+          </Panel>
+        </div>
       )}
 
       {tab === 'Week' && (
         <>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1">
-              <button className="btn px-1.5 py-1" aria-label="Vorige week" onClick={() => setAnchor(addDays(anchor, -7))}>
-                <ChevronLeft size={14} />
-              </button>
+              <button className="btn px-1.5 py-1" aria-label="Vorige week"
+                onClick={() => setAnchor(addDays(anchor, -7))}><ChevronLeft size={14} /></button>
               <span className="num min-w-[150px] text-center text-sm text-ink">
                 {periodLabel('week', periodFor('week', anchor))}
               </span>
-              <button className="btn px-1.5 py-1" aria-label="Volgende week" onClick={() => setAnchor(addDays(anchor, 7))}>
-                <ChevronRight size={14} />
-              </button>
+              <button className="btn px-1.5 py-1" aria-label="Volgende week"
+                onClick={() => setAnchor(addDays(anchor, 7))}><ChevronRight size={14} /></button>
             </div>
             {startOfWeek(anchor) !== startOfWeek(today) && (
-              <button className="btn py-1 text-xs" onClick={() => { setAnchor(today); setSelectedDay(today) }}>Deze week</button>
+              <button className="btn py-1 text-xs" onClick={() => setAnchor(today)}>Deze week</button>
             )}
+            <span className="num ml-auto text-[11px] text-muted">
+              {db.tasks.filter((t) => t.date && t.date >= startOfWeek(anchor) && t.date <= addDays(startOfWeek(anchor), 6) && !t.done).length} open
+            </span>
           </div>
-
-          <div className="grid grid-cols-7 gap-2">
-            {days.map((key) => {
-              const score = dayHasData(db, key) ? dayScore(db, key) : 0
-              const tasks = tasksOnDay(db, key)
-              const sessions = sessionsOnDay(db, key)
-              const planned = sessionsFor(key)
-              return (
-                <button key={key} onClick={() => setSelectedDay(key)}
-                  className={`panel p-2.5 text-left transition ${
-                    selectedDay === key ? 'border-accent/60 shadow-hud' : 'hover:border-accent/40'
-                  }`}>
-                  <div className="flex items-baseline justify-between">
-                    <span className="label">{dayShort(key)}</span>
-                    <span className="num text-[10px] text-muted">{formatShort(key)}</span>
-                  </div>
-                  <div className="num mt-1.5 text-lg font-bold"
-                    style={{ color: score > 0 ? scoreColor(score, true) : '#2a3b4d' }}>
-                    {dayHasData(db, key) ? score : '—'}
-                  </div>
-                  <div className="mt-1.5 flex gap-0.5">
-                    {planned.map((s) => (
-                      <span key={s.id} className="h-1.5 flex-1 rounded-full"
-                        style={{ background: db.days[key]?.sessions[s.id] ? SESSION_STYLE[s.kind].color : '#16283a' }}
-                        title={SESSION_STYLE[s.kind].label} />
-                    ))}
-                    {planned.length === 0 && <span className="h-1.5 flex-1 rounded-full bg-line/40" title="rustdag" />}
-                  </div>
-                  <div className="mt-1.5 text-[10px] text-muted">
-                    {tasks.total > 0 ? `${tasks.done}/${tasks.total} taken` : 'geen taken'}
-                    {sessions.planned > 0 && ` · ${sessions.done}/${sessions.planned}`}
-                  </div>
-                  {key === today && <div className="mt-1 text-[9px] text-accent">vandaag</div>}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
-            <Panel hud title={`Taken — ${formatLong(selectedDay)}`}>
-              <Tasks dateKey={selectedDay} full />
-            </Panel>
-
-            <div className="space-y-4">
-              <Panel title="Doelen deze week">
-                {weekGoals.length === 0 ? (
-                  <Empty>Nog geen weekdoelen. Zet er drie bij het tabblad Doelen.</Empty>
-                ) : (
-                  <ul className="space-y-2.5">
-                    {weekGoals.map((g) => (
-                      <li key={g.id}>
-                        <div className="mb-1 flex items-baseline justify-between gap-2">
-                          <span className="flex min-w-0 items-center gap-2">
-                            <span className="h-2 w-2 shrink-0 rounded-[2px]"
-                              style={{ background: DOMAIN_STYLE[g.domain].color }} aria-hidden />
-                            <span className={`truncate text-sm ${g.done ? 'text-muted line-through' : 'text-ink'}`}>{g.title}</span>
-                          </span>
-                          <span className="num shrink-0 text-[11px] text-muted">
-                            {g.target === null ? (g.done ? 'klaar' : '—') : `${g.progress}/${g.target} ${g.unit}`}
-                          </span>
-                        </div>
-                        <Bar value={goalPercent(g)} max={100}
-                          color={goalPercent(g) >= 100 ? STATUS.good : DOMAIN_STYLE[g.domain].color} />
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Panel>
-
-              <Panel hud title="Weekreview"
-                right={<span className="num text-[11px] text-muted">tot en met vandaag</span>}>
-                <div className="mb-3 flex items-center gap-5">
-                  <div className="text-center">
-                    <Ring value={review.avgScore} size={92} stroke={7} />
-                    <div className="label mt-1">gem. score</div>
-                  </div>
-                  <div className="grid flex-1 gap-2">
-                    <div>
-                      <div className="label">Sessies</div>
-                      <div className="num text-lg font-bold" style={{ color: SERIES.orange }}>
-                        {review.sessions.done}<span className="text-xs text-muted">/{review.sessions.planned}</span>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="label">75 Hard volledig</div>
-                      <div className="num text-lg font-bold" style={{ color: SERIES.violet }}>
-                        {review.hard75Days}<span className="text-xs text-muted"> dagen</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <ul className="space-y-1.5 border-t border-line/60 pt-3">
-                  {review.lines.map((l, i) => <ToneLine key={i} tone={l.tone}>{l.text}</ToneLine>)}
-                </ul>
-              </Panel>
-            </div>
-          </div>
+          <WeekBoard anchor={anchor} />
+          <p className="text-[11px] text-muted">
+            Klik onderaan een dag om er een taak bij te zetten. Met de pijltjes op een taak schuif je hem een dag op.
+            De streepjes bovenaan zijn je geplande sessies.
+          </p>
         </>
       )}
 
-      {tab === 'Doelen' && (
-        <Panel hud title="Doelen">
-          <Goals />
-          <p className="mt-4 border-t border-line/60 pt-3 text-[11px] text-muted">
-            Jaardoelen zijn de richting, maanddoelen de tussenstappen, weekdoelen wat je nu doet.
-            Hang je taken aan een weekdoel, dan zie je meteen of je dagen je doelen dienen.
-          </p>
+      {tab === 'Maand' && (
+        <Panel hud title="Maandoverzicht">
+          <MonthView onPickDay={(key) => { setSelectedDay(key); setAnchor(key); setTab('Vandaag') }} />
         </Panel>
       )}
 
-      {tab === 'Jaar' && (
-        <Panel hud title="Je jaar in dagen">
-          <YearGrid />
-        </Panel>
+      {tab === 'Doelen' && (
+        <>
+          <GoalsSimple />
+          <p className="text-[11px] text-muted">
+            Jaardoelen zijn de richting, maanddoelen de tussenstappen, weekdoelen wat je nu doet.
+            Vul een streefwaarde in als het meetbaar is; laat leeg als je hem gewoon wil afvinken.
+          </p>
+        </>
       )}
 
       {tab === 'Lesrooster' && (

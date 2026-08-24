@@ -2,6 +2,7 @@ import type { Database } from './types'
 import type { Book } from './books'
 import { progressPercent } from './books'
 import { addDays, daysBetween, formatShort, startOfWeek, todayKey, weekKeys } from './date'
+import { afterStart } from './appStart'
 import { coverColor } from './books'
 
 export interface BookStats {
@@ -52,16 +53,18 @@ export function activeBooks(db: Database): Book[] {
 /** Pagina's per week over de laatste weken. */
 export function pagesByWeek(db: Database, weeks = 12, today = todayKey()) {
   const thisWeek = startOfWeek(today)
-  return Array.from({ length: weeks }, (_, i) => {
+  const all = Array.from({ length: weeks }, (_, i) => {
     const start = addDays(thisWeek, (i - weeks + 1) * 7)
     const keys = weekKeys(start)
     const list = db.reading.filter((r) => keys.includes(r.date))
     return {
+      start,
       label: formatShort(start),
       pagina: list.reduce((n, r) => n + r.pages, 0),
       minuten: list.reduce((n, r) => n + r.minutes, 0),
     }
   })
+  return all.filter((w) => afterStart(addDays(w.start, 6)))
 }
 
 /** Gemiddeld aantal pagina's per leesdag over een venster. */
@@ -97,12 +100,15 @@ export function estimatedFinish(book: Book, pace: number | null, today = todayKe
 export function finishedByMonth(db: Database, today = todayKey()) {
   const year = today.slice(0, 4)
   const short = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
-  return short.map((label, i) => ({
-    label,
-    boeken: db.books.filter(
-      (b) => b.status === 'gelezen' && (b.finished ?? '').startsWith(`${year}-${String(i + 1).padStart(2, '0')}`),
-    ).length,
-  }))
+  return short
+    .map((label, i) => ({
+      label,
+      month: `${year}-${String(i + 1).padStart(2, '0')}`,
+      boeken: db.books.filter(
+        (b) => b.status === 'gelezen' && (b.finished ?? '').startsWith(`${year}-${String(i + 1).padStart(2, '0')}`),
+      ).length,
+    }))
+    .filter((m) => afterStart(`${m.month}-28`))
 }
 
 /** Verdeling over categorieën, op aantal gelezen boeken. */

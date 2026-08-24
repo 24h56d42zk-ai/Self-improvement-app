@@ -10,12 +10,6 @@ export interface Hard75Day {
   read: boolean
 }
 
-export interface Reflection {
-  good: string
-  bad: string
-  tomorrow: string
-}
-
 export interface DayLog {
   date: string
   hard75: Hard75Day
@@ -26,7 +20,6 @@ export interface DayLog {
   ateHealthy: boolean | null
   sleepHours: number | null
   weightKg: number | null
-  reflection: Reflection | null
   note: string
 }
 
@@ -75,9 +68,7 @@ export interface Settings {
 import type { SessionLog, StationId, StationResult } from './training'
 import { defaultTargets } from './training'
 import type { Fair, InventoryItem, Trade } from './business'
-import type {
-  Card, CardDeck, Exam, Grade, Note, Presentation, Project, ReviewLog, StudySession, Subject,
-} from './school'
+import type { Note, Presentation, Project, Subject } from './school'
 import type { Book, ReadingLog } from './books'
 import type { Goal, Lesson } from './planning'
 
@@ -98,14 +89,8 @@ export interface Database {
   fairs: Fair[]
   subjects: Subject[]
   notes: Note[]
-  decks: CardDeck[]
-  cards: Card[]
   projects: Project[]
   presentations: Presentation[]
-  grades: Grade[]
-  exams: Exam[]
-  study: StudySession[]
-  reviewLog: ReviewLog[]
   books: Book[]
   reading: ReadingLog[]
   /** Hoeveel boeken je dit jaar wil lezen */
@@ -137,7 +122,6 @@ export function emptyDay(date: string): DayLog {
     ateHealthy: null,
     sleepHours: null,
     weightKg: null,
-    reflection: null,
     note: '',
   }
 }
@@ -164,14 +148,8 @@ export function emptyDatabase(): Database {
     fairs: [],
     subjects: [],
     notes: [],
-    decks: [],
-    cards: [],
     projects: [],
     presentations: [],
-    grades: [],
-    exams: [],
-    study: [],
-    reviewLog: [],
     books: [],
     reading: [],
     bookGoal: 12,

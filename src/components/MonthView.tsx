@@ -2,8 +2,7 @@ import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { addDays, dayShort, formatShort, isoWeekday, monthName, todayKey } from '../lib/date'
-import { dayHasData, dayScore, sessionsOnDay, tasksOnDay } from '../lib/derive'
-import { scoreColor } from '../lib/palette'
+import { sessionsOnDay, tasksOnDay } from '../lib/derive'
 import { STATUS } from '../lib/palette'
 
 /** Maandkalender met per dag je score, je sessies, je taken en je toetsen. */
@@ -33,8 +32,10 @@ export default function MonthView({ onPickDay }: { onPickDay?: (key: string) => 
   }
 
   const [year, monthNum] = month.split('-').map(Number)
-  const scores = cells.filter(Boolean).map((c) => (dayHasData(db, c!.key) ? dayScore(db, c!.key) : null)).filter((s): s is number => s !== null)
-  const average = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null
+  const openTasks = cells.filter(Boolean).reduce((n, c) => {
+    const t = tasksOnDay(db, c!.key)
+    return n + (t.total - t.done)
+  }, 0)
 
   return (
     <div>
@@ -48,7 +49,7 @@ export default function MonthView({ onPickDay }: { onPickDay?: (key: string) => 
           <button className="btn py-1 text-xs" onClick={() => setMonth(today.slice(0, 7))}>Deze maand</button>
         )}
         <span className="num ml-auto text-[11px] text-muted">
-          {scores.length} dagen gelogd{average !== null && ` · gemiddeld ${average}`}
+          {openTasks} taken open deze maand
         </span>
       </div>
 
@@ -58,32 +59,21 @@ export default function MonthView({ onPickDay }: { onPickDay?: (key: string) => 
         ))}
         {cells.map((cell, i) => {
           if (!cell) return <div key={`x${i}`} />
-          const has = dayHasData(db, cell.key)
-          const score = has ? dayScore(db, cell.key) : 0
           const tasks = tasksOnDay(db, cell.key)
           const sessions = sessionsOnDay(db, cell.key)
-          const exams = db.exams.filter((e) => e.date === cell.key)
           const isToday = cell.key === today
           return (
             <button
               key={cell.key}
               onClick={() => onPickDay?.(cell.key)}
               className={`min-h-[74px] rounded-md border p-1.5 text-left transition hover:border-accent/50 ${
-                isToday ? 'border-accent' : 'border-line/70'
+                isToday ? 'border-accent bg-accent/5' : 'border-line/70'
               }`}
-              style={{ background: has ? `color-mix(in srgb, ${scoreColor(score, true)} 18%, #080d16)` : undefined }}
             >
               <div className="flex items-baseline justify-between">
-                <span className="num text-[11px] text-ink">{cell.day}</span>
-                {has && <span className="num text-[10px]" style={{ color: scoreColor(score, true) }}>{score}</span>}
+                <span className={`num text-[11px] ${isToday ? 'text-accent' : 'text-ink'}`}>{cell.day}</span>
               </div>
               <div className="mt-1 space-y-0.5">
-                {exams.map((e) => (
-                  <div key={e.id} className="truncate rounded px-1 text-[9px]"
-                    style={{ background: `${STATUS.critical}22`, color: STATUS.critical }}>
-                    {e.title}
-                  </div>
-                ))}
                 {sessions.planned > 0 && (
                   <div className="num text-[9px] text-muted">{sessions.done}/{sessions.planned} sessies</div>
                 )}
@@ -100,7 +90,7 @@ export default function MonthView({ onPickDay }: { onPickDay?: (key: string) => 
       </div>
 
       <p className="mt-3 text-[11px] text-muted">
-        Klik een dag om hem te openen. Rood is een toets, oranje betekent dat er nog taken openstaan.
+        Klik een dag om hem te openen bij Vandaag. Oranje betekent dat er nog taken openstaan.
       </p>
     </div>
   )

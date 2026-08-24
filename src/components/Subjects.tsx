@@ -40,7 +40,6 @@ export default function Subjects() {
     update((db) => {
       db.subjects = db.subjects.filter((s) => s.id !== id)
       for (const n of db.notes) if (n.subjectId === id) n.subjectId = null
-      for (const d of db.decks) if (d.subjectId === id) d.subjectId = null
       for (const p of db.projects) if (p.subjectId === id) p.subjectId = null
       for (const p of db.presentations) if (p.subjectId === id) p.subjectId = null
     })
