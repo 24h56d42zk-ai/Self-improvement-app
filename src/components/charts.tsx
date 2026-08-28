@@ -266,7 +266,9 @@ export function ProfitPerFair({ data }: { data: FairBar[] }) {
       <BarChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 6 }} barCategoryGap="26%">
         <CartesianGrid stroke={CHROME.grid} strokeDasharray="2 4" vertical={false} />
         <XAxis dataKey="label" tick={axisStyle} axisLine={false} tickLine={false} minTickGap={8} />
+        {/* Nul altijd in beeld: anders leest één verliesbeurs als een schaal zonder ijkpunt. */}
         <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={52}
+          domain={[(min: number) => Math.min(0, min), (max: number) => Math.max(0, max)]}
           tickFormatter={(v: number) => (Math.abs(v) >= 1000 ? `€${Math.round(v / 1000)}k` : `€${v}`)} />
         <Tooltip content={tip} cursor={{ fill: 'rgba(34,211,238,.06)' }} />
         <ReferenceLine y={0} stroke={CHROME.axis} strokeWidth={1} />

@@ -18,6 +18,7 @@ import {
 import Inventory from '../components/Inventory'
 import Trades from '../components/Trades'
 import Fairs from '../components/Fairs'
+import QuickEntry from '../components/QuickEntry'
 
 const TABS = ['Overzicht', 'Analyse', 'Inventaris', 'Transacties', 'Beurzen'] as const
 type Tab = (typeof TABS)[number]
@@ -115,6 +116,10 @@ export default function Business() {
             </div>
           </div>
 
+          <Panel hud title="Boeken" right={<span className="num text-[11px] text-muted">werkt alles tegelijk bij</span>}>
+            <QuickEntry />
+          </Panel>
+
           <div className="grid gap-4 xl:grid-cols-2">
             <Panel title="Vermogen over tijd"
               right={<Legend items={[
@@ -131,7 +136,7 @@ export default function Business() {
                   </p>
                 </>
               ) : (
-                <Empty>Voeg minstens twee metingen toe bij Instellingen → Vermogen.</Empty>
+                <Empty>Vanaf twee metingen verschijnt hier de lijn. Klik hierboven op je cash of voorraad om er een te zetten.</Empty>
               )}
             </Panel>
 
@@ -194,7 +199,12 @@ export default function Business() {
 
       {tab === 'Analyse' && <Analyse />}
 
-      {tab === 'Inventaris' && <Panel hud title="Inventaris"><Inventory /></Panel>}
+      {tab === 'Inventaris' && (
+        <>
+          <Panel hud title="Snel boeken"><QuickEntry /></Panel>
+          <Panel title="Inventaris"><Inventory /></Panel>
+        </>
+      )}
       {tab === 'Transacties' && <Panel hud title="Aan- en verkopen"><Trades /></Panel>}
       {tab === 'Beurzen' && <Fairs />}
     </div>
