@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
-  BookOpen, CalendarRange, Cog, Dumbbell, GraduationCap, LayoutDashboard, ShieldCheck, Wallet,
+  BookOpen, CalendarRange, Cog, Dumbbell, GraduationCap, LayoutDashboard, Package, ShieldCheck, Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { SERIES } from '../lib/palette'
@@ -11,6 +11,7 @@ export const NAV: Item[] = [
   { to: '/',            label: 'Dashboard', icon: LayoutDashboard, color: '#22d3ee' },
   { to: '/75hard',      label: '75 Hard',   icon: ShieldCheck,     color: SERIES.violet },
   { to: '/training',    label: 'Training',  icon: Dumbbell,        color: SERIES.orange },
+  { to: '/voorraad',    label: 'Voorraad',  icon: Package,         color: SERIES.aqua },
   { to: '/business',    label: 'Business',  icon: Wallet,          color: SERIES.aqua },
   { to: '/school',      label: 'School',    icon: GraduationCap,   color: SERIES.blue },
   { to: '/boeken',      label: 'Boeken',    icon: BookOpen,        color: SERIES.magenta },

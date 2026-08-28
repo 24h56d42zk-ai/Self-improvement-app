@@ -87,6 +87,10 @@ export interface Database {
   inventory: InventoryItem[]
   trades: Trade[]
   fairs: Fair[]
+  /** Shopify-bestellingen die al geboekt zijn */
+  shopifyImported: string[]
+  /** Wanneer je voor het laatst synchroniseerde */
+  shopifySyncedAt: string | null
   subjects: Subject[]
   notes: Note[]
   projects: Project[]
@@ -146,6 +150,8 @@ export function emptyDatabase(): Database {
     inventory: [],
     trades: [],
     fairs: [],
+    shopifyImported: [],
+    shopifySyncedAt: null,
     subjects: [],
     notes: [],
     projects: [],

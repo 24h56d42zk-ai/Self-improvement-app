@@ -48,6 +48,12 @@ export default function QuickEntry() {
   const profit = kind === 'verkoop' ? qty * (price - cost) : 0
   const margin = kind === 'verkoop' && total > 0 ? (profit / total) * 100 : null
   const money = wealth(db, today)
+  // Wat deze boeking met je voorraadwaarde doet: eruit tegen jouw eigen waardering,
+  // erin tegen wat je ervoor betaalde.
+  const inventoryDelta = kind === 'verkoop'
+    ? -qty * (match?.unitValue ?? cost)
+    : qty * price
+  const totalDelta = (kind === 'verkoop' ? total : -total) + inventoryDelta
   const overSold = kind === 'verkoop' && match !== null && qty > match.quantity
 
   /** Bij het kiezen van een bestaand item vullen we in wat we al weten. */
@@ -110,6 +116,7 @@ export default function QuickEntry() {
           quantity: qty, unitPrice: price, unitCost: cost, channel,
           fairId: fairId || null, itemId: existing?.id ?? null, note: '',
           at: new Date().toISOString(),
+          valueAtSale: existing?.unitValue ?? cost,
         })
         if (existing) {
           existing.quantity -= qty
@@ -241,6 +248,11 @@ export default function QuickEntry() {
         )}
         <span className="num ml-auto text-[11px] text-muted">
           cash {euro(money.cash)} → {euro(money.cash + (kind === 'verkoop' ? total : -total))}
+          {' · '}voorraad {euro(money.inventory)} → {euro(Math.max(0, money.inventory + inventoryDelta))}
+          {' · '}totaal{' '}
+          <span style={{ color: totalDelta >= 0 ? STATUS.good : STATUS.critical }}>
+            {totalDelta >= 0 ? '+' : ''}{euro(totalDelta)}
+          </span>
         </span>
       </div>
 

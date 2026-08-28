@@ -9,6 +9,7 @@ import Hard75 from './pages/Hard75'
 import Instellingen from './pages/Instellingen'
 import Training from './pages/Training'
 import Business from './pages/Business'
+import Voorraad from './pages/Voorraad'
 import School from './pages/School'
 import Boeken from './pages/Boeken'
 import Planning from './pages/Planning'
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="/75hard" element={<Hard75 />} />
           <Route path="/instellingen" element={<Instellingen />} />
           <Route path="/training" element={<Training />} />
+          <Route path="/voorraad" element={<Voorraad />} />
           <Route path="/business" element={<Business />} />
           <Route path="/school" element={<School />} />
           <Route path="/boeken" element={<Boeken />} />

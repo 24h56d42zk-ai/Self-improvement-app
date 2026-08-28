@@ -14,8 +14,10 @@ export interface Wealth {
   total: number
   /** Datum van de meting waarop dit verder rekent */
   since: string | null
-  /** Wat er sinds die meting binnenkwam en uitging */
+  /** Wat er sinds die meting aan cash binnenkwam en uitging */
   movements: number
+  /** Hoeveel voorraadwaarde er sinds die meting bij kwam of afging */
+  inventoryMovements: number
 }
 
 function lastSnapshot(db: Database): NetWorthSnapshot | null {
@@ -31,16 +33,27 @@ function isAfter(snapshot: NetWorthSnapshot, date: string, at?: string): boolean
 
 export function wealth(db: Database, today = todayKey()): Wealth {
   const snap = lastSnapshot(db)
-  const inventory = inventoryShown(db)
-  if (!snap) return { cash: 0, inventory, total: inventory, since: null, movements: 0 }
+  if (!snap) {
+    const listed = listedValue(db)
+    return { cash: 0, inventory: listed, total: listed, since: null, movements: 0, inventoryMovements: 0 }
+  }
 
   const notFuture = (date: string) => daysBetween(date, today) >= 0
   const relevant = (date: string, at?: string) => isAfter(snap, date, at) && notFuture(date)
 
   let movements = 0
+  let inventoryMovements = 0
   for (const t of db.trades) {
     if (!relevant(t.date, t.at)) continue
-    movements += (t.kind === 'verkoop' ? 1 : -1) * t.quantity * t.unitPrice
+    const amount = t.quantity * t.unitPrice
+    if (t.kind === 'verkoop') {
+      movements += amount
+      // De voorraad zakt met wat je het stuk zelf waard vond, niet met de verkoopprijs.
+      inventoryMovements -= t.quantity * (t.valueAtSale ?? t.unitCost ?? t.unitPrice)
+    } else {
+      movements -= amount
+      inventoryMovements += amount
+    }
   }
   for (const f of db.fairs) {
     if (!relevant(f.date)) continue
@@ -48,16 +61,17 @@ export function wealth(db: Database, today = todayKey()): Wealth {
   }
 
   const cash = snap.cash + movements
-  return { cash, inventory, total: cash + inventory, since: snap.date, movements }
+  // Dekt je lijst je meting, dan is de lijst de bron en is hij al bijgewerkt.
+  // Doet hij dat niet, dan schuift de meting mee met wat je boekte.
+  const inventory = inventoryFromList(db)
+    ? listedValue(db)
+    : Math.max(0, snap.inventory + inventoryMovements)
+
+  return { cash, inventory, total: cash + inventory, since: snap.date, movements, inventoryMovements }
 }
 
-/** Waarde van de voorraad: de lijst als die je meting dekt, anders de meting. */
-export function inventoryShown(db: Database): number {
-  const listed = db.inventory.reduce((n, i) => n + i.quantity * i.unitValue, 0)
-  const snap = lastSnapshot(db)
-  const measured = snap?.inventory ?? 0
-  if (measured === 0) return listed
-  return listed >= measured * 0.6 ? listed : Math.max(listed, measured)
+function listedValue(db: Database): number {
+  return db.inventory.reduce((n, i) => n + i.quantity * i.unitValue, 0)
 }
 
 /* ── Aanpassen ──────────────────────────────────────────────────────────── */
@@ -103,7 +117,7 @@ export function setTotal(db: Database, amount: number, note = ''): void {
 
 /** Bepaalt of de voorraad uit de itemlijst komt of uit je meting. */
 export function inventoryFromList(db: Database): boolean {
-  const listed = db.inventory.reduce((n, i) => n + i.quantity * i.unitValue, 0)
+  const listed = listedValue(db)
   const measured = lastSnapshot(db)?.inventory ?? 0
   return measured === 0 ? listed > 0 : listed >= measured * 0.6
 }

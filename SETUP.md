@@ -119,3 +119,61 @@ De ochtendbriefing, de avondwaarschuwingen en de signalen bij je business zijn
 regelgebaseerd: ze rekenen met je eigen cijfers en hebben geen sleutel nodig.
 Voor presentaties, samenvattingen en wiskundehulp werk je in Claude Code, en zet
 je het resultaat in het dashboard.
+
+---
+
+# Shopify koppelen (optioneel)
+
+Hiermee haalt de app je producten en bestellingen uit Shopify. Bestellingen
+worden geboekt als verkoop, met voorraad eraf en marge erbij.
+
+## Waarom dit een serverfunctie nodig heeft
+
+Je Shopify-token geeft toegang tot je hele winkel. Alles wat in de webapp zelf
+staat is leesbaar voor iedereen die je adres opent — een token daarin zetten
+betekent dat een vreemde je store kan leegmaken. Daarom staat het token bij
+Vercel op de server, en praat de app met een functie die het resultaat
+teruggeeft zonder het token te tonen.
+
+## 1. Een leestoken maken in Shopify
+
+1. Shopify admin → **Settings** → **Apps and sales channels** → **Develop apps**
+2. **Create an app**, naam bijvoorbeeld `Noa dashboard`
+3. **Configure Admin API scopes** en vink alleen deze aan:
+   - `read_products`
+   - `read_inventory`
+   - `read_orders`
+4. **Save** → **Install app** → kopieer de **Admin API access token** (begint met `shpat_`)
+
+> Alleen leesrechten. De app schrijft niets terug naar Shopify.
+> Dit token verschijnt maar één keer — bewaar het meteen.
+
+## 2. In Vercel zetten
+
+Vercel → je project → **Settings** → **Environment Variables**. Drie regels:
+
+| Name | Value |
+|---|---|
+| `SHOPIFY_STORE_DOMAIN` | `primecollectiblestcg.myshopify.com` |
+| `SHOPIFY_ADMIN_TOKEN` | je `shpat_...` token |
+| `SYNC_SECRET` | een zelfgekozen wachtwoord, minstens 12 tekens |
+
+Daarna **Deployments** → bovenste → **Redeploy**, zodat de functie de waarden krijgt.
+
+`SYNC_SECRET` beschermt de functie zelf: zonder dat wachtwoord kan iemand die
+je adres kent je verkoopcijfers opvragen. Je vult het één keer in de app in.
+
+## 3. In de app
+
+Ga naar **Voorraad → Shopify**:
+
+- **Producten ophalen** → **Overnemen in je inventaris**. Bestaande items worden
+  bijgewerkt (aantal en prijs), nieuwe komen erbij.
+- **Bestellingen ophalen** → **Boeken als verkoop**. Alleen bestellingen die er
+  nog niet in staan; je kan dus zo vaak synchroniseren als je wil.
+
+## Kostprijs
+
+Vul in Shopify per artikel je **kostprijs** in (product → Voorraad → *Kostprijs
+per artikel*). Die wordt overgenomen, en dan klopt je marge zonder handwerk.
+Staat er geen, dan komt het item op nul binnen en pas je het hier aan.

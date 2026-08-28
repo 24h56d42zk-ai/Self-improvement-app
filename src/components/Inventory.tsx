@@ -285,6 +285,8 @@ function SellForm({ itemId, onDone }: { itemId: string; onDone: () => void }) {
         fairId: fairId || null,
         itemId: item!.id,
         note: '',
+        at: new Date().toISOString(),
+        valueAtSale: item!.unitValue,
       })
       const target = db.inventory.find((i) => i.id === item!.id)
       if (target) {

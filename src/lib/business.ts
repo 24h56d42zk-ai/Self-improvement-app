@@ -32,6 +32,9 @@ export interface InventoryItem {
   /** Wanneer je de marktwaarde het laatst bijwerkte */
   valueUpdated: string
   note: string
+  /** Gekoppelde Shopify-variant, zodat bijwerken de juiste regel raakt */
+  shopifyVariantId?: string
+  sku?: string
 }
 
 export interface Trade {
@@ -51,6 +54,14 @@ export interface Trade {
   note: string
   /** Exact tijdstip van boeken; gebruikt om samen met metingen op dezelfde dag te rekenen */
   at?: string
+  /**
+   * Bij een verkoop: de waarde die je zelf aan het stuk gaf op het moment van
+   * verkopen. Daarmee kan je voorraadwaarde meebewegen ook als je itemlijst
+   * nog niet je hele voorraad dekt.
+   */
+  valueAtSale?: number
+  /** Van welke Shopify-bestelling deze verkoop komt, om dubbel boeken te voorkomen */
+  shopifyOrderId?: string
 }
 
 export interface Fair {
