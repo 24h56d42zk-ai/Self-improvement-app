@@ -143,6 +143,11 @@ teruggeeft zonder het token te tonen.
    - `read_products`
    - `read_inventory`
    - `read_orders`
+   - `read_marketplace_orders`
+   - `read_quick_sale`
+
+   > Die laatste twee vraagt Shopify zelf op bij het ophalen van bestellingen.
+   > Zonder die twee werkt "Producten ophalen" wel, maar "Bestellingen ophalen" niet.
 4. **Save** → **Install app** → kopieer de **Admin API access token** (begint met `shpat_`)
 
 > Alleen leesrechten. De app schrijft niets terug naar Shopify.
