@@ -63,6 +63,8 @@ export interface Settings {
   bootSeen: string | null
   /** Bewust gekozen om zonder cloud te werken; onderdrukt het startscherm */
   localOnly?: boolean
+  /** Welke automatische schoonmaak al gedraaid heeft; null = nog geen */
+  resetDone?: string | null
 }
 
 import type { SessionLog, StationId, StationResult } from './training'
@@ -140,6 +142,7 @@ export function emptyDatabase(): Database {
       hard75Attempt: 1,
       calmMode: false,
       bootSeen: null,
+      resetDone: null,
     },
     days: {},
     tasks: [],

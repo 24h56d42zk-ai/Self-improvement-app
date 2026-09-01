@@ -1,14 +1,13 @@
 import { useState } from 'react'
-import { AlertTriangle, Download } from 'lucide-react'
+import { AlertTriangle, Download, RotateCcw } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { APP_START } from '../lib/appStart'
 import { emptyDatabase } from '../lib/types'
+import { keepBackup, readBackup, RESET_ID, wipe, type ResetScope } from '../lib/reset'
 import { formatLong, todayKey } from '../lib/date'
 import { STATUS } from '../lib/palette'
 
-type Scope = 'logboek' | 'alles'
-
-const SCOPES: { id: Scope; label: string; keeps: string; wipes: string }[] = [
+const SCOPES: { id: ResetScope; label: string; keeps: string; wipes: string }[] = [
   {
     id: 'logboek',
     label: 'Alleen mijn logboek',
@@ -23,88 +22,94 @@ const SCOPES: { id: Scope; label: string; keeps: string; wipes: string }[] = [
   },
 ]
 
+function download(json: string, name: string) {
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 /**
  * Opnieuw beginnen. Onomkeerbaar, dus met een backup vooraf en een woord dat
- * je moet uittypen — een verkeerde klik mag hier niet volstaan.
+ * je moet uittypen — een verkeerde klik mag hier niet volstaan. Bovenaan staat
+ * wat de automatische schoonmaak van 1 september opzij zette.
  */
 export default function ResetPanel() {
   const { db, update, exportJson } = useStore()
-  const [scope, setScope] = useState<Scope>('logboek')
+  const [scope, setScope] = useState<ResetScope>('alles')
   const [confirm, setConfirm] = useState('')
   const [backedUp, setBackedUp] = useState(false)
   const [done, setDone] = useState(false)
+  const [restored, setRestored] = useState(false)
 
   const chosen = SCOPES.find((s) => s.id === scope)!
   const ready = confirm.trim().toUpperCase() === 'WISSEN'
-
-  function download() {
-    const blob = new Blob([exportJson()], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `noa-backup-voor-reset-${todayKey()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-    setBackedUp(true)
-  }
+  const old = readBackup()
 
   function reset() {
     if (!ready) return
+    keepBackup(db)
     update((draft) => {
-      const fresh = emptyDatabase()
-
-      // Wat je opnieuw wil opbouwen, gaat altijd leeg.
-      draft.days = {}
-      draft.tasks = []
-      draft.netWorth = []
-      draft.sessionLogs = []
-      draft.stations = []
-      draft.stationTargets = fresh.stationTargets
-      draft.trades = []
-      draft.fairs = []
-      draft.reading = []
-      draft.shopifyImported = []
-      draft.shopifySyncedAt = null
-      draft.settings.hard75Start = null
-      draft.settings.hard75Attempt = 1
-      draft.settings.bootSeen = null
-
-      if (scope === 'alles') {
-        draft.inventory = []
-        draft.subjects = []
-        draft.notes = []
-        draft.projects = []
-        draft.presentations = []
-        draft.books = []
-        draft.goals = []
-        draft.lessons = []
-        draft.bookGoal = fresh.bookGoal
-      }
+      wipe(draft, scope)
+      draft.settings.resetDone = RESET_ID
     })
     setDone(true)
     setConfirm('')
   }
 
-  if (done) {
-    return (
-      <div className="space-y-2">
-        <p className="text-sm" style={{ color: STATUS.good }}>
-          ✓ Gewist. Je begint opnieuw vanaf {formatLong(APP_START)}.
-        </p>
-        <p className="text-[11px] text-muted">
-          Zet je 75 Hard-startdatum opnieuw bij het tabblad 75 Hard, en je cash en voorraad
-          bij Voorraad. Daarna staat alles klaar.
-        </p>
-      </div>
-    )
+  function restore() {
+    const backup = readBackup()
+    if (!backup) return
+    update((draft) => {
+      Object.assign(draft, { ...emptyDatabase(), ...backup })
+      draft.settings.resetDone = RESET_ID
+    })
+    setRestored(true)
+    setDone(false)
   }
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted">
         Alles begint te tellen vanaf <span className="text-ink">{formatLong(APP_START)}</span>.
-        Wil je met een schone lei beginnen, wis dan hieronder wat je hebt ingevuld.
+        Bij deze versie is je oude invoer automatisch gewist, zodat je met een schone lei start.
       </p>
+
+      {old && (
+        <div className="rounded-md border border-line p-3">
+          <p className="text-sm text-ink">Je vorige gegevens zijn bewaard</p>
+          <p className="mt-1 text-[11px] text-muted">
+            De stand van vlak voor het wissen staat nog op dit toestel. Je kan ze downloaden,
+            of ze in één klik terugzetten als er toch iets bij moest blijven.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button className="btn py-1.5 text-xs"
+              onClick={() => download(JSON.stringify(old, null, 2), `noa-oude-gegevens-${todayKey()}.json`)}>
+              <Download size={13} /> Downloaden
+            </button>
+            <button className="btn py-1.5 text-xs" onClick={restore}>
+              <RotateCcw size={13} /> Terugzetten
+            </button>
+          </div>
+          {restored && (
+            <p className="mt-1.5 text-[11px]" style={{ color: STATUS.good }}>
+              ✓ Teruggezet. Alles staat weer zoals het stond.
+            </p>
+          )}
+        </div>
+      )}
+
+      {done && (
+        <p className="text-sm" style={{ color: STATUS.good }}>
+          ✓ Gewist. Zet je 75 Hard-startdatum opnieuw bij het tabblad 75 Hard, en je cash en
+          voorraad bij Voorraad.
+        </p>
+      )}
+
+      <p className="text-sm text-muted">Wil je later opnieuw beginnen, dan doe je dat hier.</p>
 
       <div className="grid gap-2 sm:grid-cols-2">
         {SCOPES.map((s) => (
@@ -124,7 +129,8 @@ export default function ResetPanel() {
           <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden />
           Dit kan niet ongedaan gemaakt worden. Ook op je gsm is het weg zodra hij synchroniseert.
         </p>
-        <button className="btn mt-2 py-1.5 text-xs" onClick={download}>
+        <button className="btn mt-2 py-1.5 text-xs"
+          onClick={() => { download(exportJson(), `noa-backup-voor-reset-${todayKey()}.json`); setBackedUp(true) }}>
           <Download size={13} /> {backedUp ? 'Nog een backup downloaden' : 'Eerst een backup downloaden'}
         </button>
         {backedUp && (

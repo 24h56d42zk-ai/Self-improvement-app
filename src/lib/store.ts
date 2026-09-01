@@ -5,6 +5,7 @@ import type { Database, DayLog, Settings } from './types'
 import { emptyDatabase, emptyDay } from './types'
 import { todayKey } from './date'
 import { cloudConfigured, STATE_TABLE, supabase } from './supabase'
+import { keepBackup, RESET_ID, wipe } from './reset'
 
 const LOCAL_KEY = 'noa.dashboard.v1'
 
@@ -185,8 +186,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
     update((draft) => {
       Object.assign(draft, { ...emptyDatabase(), ...parsed })
+      // Zelf terugzetten is een bewuste keuze; de schoonmaak mag er niet
+      // meteen overheen gaan omdat de markering in het bestand ontbreekt.
+      draft.settings.resetDone = RESET_ID
     })
   }, [update])
+
+  // Eenmalige schoonmaak. Noa begint op 1 september met een schone lei, dus
+  // wat er nog stond gaat er bij het eerste bezoek vanzelf uit — met een kopie
+  // in localStorage, want automatisch wissen mag geen definitief verlies zijn.
+  // Komt er daarna alsnog oude data uit de cloud binnen, dan mist die dezelfde
+  // markering en wordt ze meteen ook opgeruimd.
+  useEffect(() => {
+    if (!ready) return
+    if (db.settings.resetDone === RESET_ID) return
+    keepBackup(db)
+    update((draft) => {
+      wipe(draft, 'alles')
+      draft.settings.resetDone = RESET_ID
+    })
+  }, [ready, db, update])
 
   // Rustige modus schakelt animaties uit via een attribuut op <body>.
   useEffect(() => {
