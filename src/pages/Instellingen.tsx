@@ -5,6 +5,7 @@ import { latestNetWorth, netWorthSeries } from '../lib/derive'
 import { inventoryTotals } from '../lib/businessDerive'
 import { Empty, Panel } from '../components/Hud'
 import CloudSetup from '../components/CloudSetup'
+import ResetPanel from '../components/ResetPanel'
 import { SERIES } from '../lib/palette'
 
 const euro = (n: number) => `€${Math.round(n).toLocaleString('nl-BE')}`
@@ -141,6 +142,10 @@ export default function Instellingen() {
             checked={db.settings.calmMode} onChange={(e) => setSettings({ calmMode: e.target.checked })} />
           Rustige modus — zet animaties en gloed uit (sneltoets: <span className="num">r</span>)
         </label>
+      </Panel>
+
+      <Panel title="Opnieuw beginnen">
+        <ResetPanel />
       </Panel>
 
       <Panel title="Opslag en backup">
