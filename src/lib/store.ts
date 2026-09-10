@@ -192,7 +192,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     })
   }, [update])
 
-  // Eenmalige schoonmaak. Noa begint op 1 september met een schone lei, dus
+  // Eenmalige schoonmaak. Noa begint op 10 september met een schone lei, dus
   // wat er nog stond gaat er bij het eerste bezoek vanzelf uit — met een kopie
   // in localStorage, want automatisch wissen mag geen definitief verlies zijn.
   // Komt er daarna alsnog oude data uit de cloud binnen, dan mist die dezelfde

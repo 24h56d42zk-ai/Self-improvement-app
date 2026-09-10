@@ -35,7 +35,7 @@ function download(json: string, name: string) {
 /**
  * Opnieuw beginnen. Onomkeerbaar, dus met een backup vooraf en een woord dat
  * je moet uittypen — een verkeerde klik mag hier niet volstaan. Bovenaan staat
- * wat de automatische schoonmaak van 1 september opzij zette.
+ * wat de laatste automatische schoonmaak opzij zette.
  */
 export default function ResetPanel() {
   const { db, update, exportJson } = useStore()

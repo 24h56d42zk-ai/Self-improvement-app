@@ -2,15 +2,17 @@ import type { Database } from './types'
 import { emptyDatabase } from './types'
 
 /**
- * Eén keer per apparaat wordt automatisch schoongeveegd, zodat de teller op
- * 1 september begint zonder dat je zelf een knop moet zoeken. Verander deze
+ * Eén keer per apparaat wordt automatisch schoongeveegd, zodat de teller op de
+ * startdatum begint zonder dat je zelf een knop moet zoeken. Verander deze
  * sleutel alleen als er echt opnieuw gewist moet worden: hij is de enige
  * herinnering dat het al gebeurd is.
  */
-export const RESET_ID = '2026-09-01-alles'
+export const RESET_ID = '2026-09-10-alles'
 
-/** Waar de laatste versie vóór het wissen bewaard blijft. */
-const BACKUP_KEY = 'noa.dashboard.backup.voor-reset'
+/** Elke schoonmaak legt zijn eigen kopie opzij; een oudere gaat nooit verloren. */
+const BACKUP_KEY = `noa.dashboard.backup.${RESET_ID}`
+/** De kopie van de allereerste automatische schoonmaak. */
+const LEGACY_BACKUP_KEY = 'noa.dashboard.backup.voor-reset'
 
 export type ResetScope = 'logboek' | 'alles'
 
@@ -61,11 +63,20 @@ export function wipe(draft: Database, scope: ResetScope) {
   }
 }
 
+function read(key: string): Database | null {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as Database) : null
+  } catch {
+    return null
+  }
+}
+
 /** Legt de huidige stand opzij, zodat wissen nooit definitief verlies is. */
 export function keepBackup(db: Database) {
   if (!hasContent(db)) return
   try {
-    const existing = readBackup()
+    const existing = read(BACKUP_KEY)
     // De rijkste versie wint: een lege lokale stand mag een volle cloudstand
     // die net binnenkwam niet overschrijven.
     if (existing && existing.updatedAt > db.updatedAt) return
@@ -75,11 +86,7 @@ export function keepBackup(db: Database) {
   }
 }
 
+/** De jongste bewaarde kopie: die van deze schoonmaak, anders de vorige. */
 export function readBackup(): Database | null {
-  try {
-    const raw = localStorage.getItem(BACKUP_KEY)
-    return raw ? (JSON.parse(raw) as Database) : null
-  } catch {
-    return null
-  }
+  return read(BACKUP_KEY) ?? read(LEGACY_BACKUP_KEY)
 }
